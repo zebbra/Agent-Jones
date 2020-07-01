@@ -8,6 +8,8 @@
 import os
 
 # default values
+
+
 class Config(object):
     DEBUG = False
     TRACE = False
@@ -39,7 +41,7 @@ class Config(object):
     # SNMP_CACHE = False
 
     # IP we listen to. 0.0.0.0 will listen to all interfaces
-    BIND_IP = '192.168.7.6'
+    BIND_IP = '0.0.0.0'
     BIND_PORT = 80
 
     # how do we use ping on this platform
@@ -52,10 +54,13 @@ class Config(object):
 
     else:
         # some sane feedback
-        logger.warning('Config : unknown system <%s>, using stock ping command' % sysname)
+        logger.warning(
+            'Config : unknown system <%s>, using stock ping command' % sysname)
         PING_COMMAND = ["ping", "-c", "5", "-i", "0.3"]
 
 # values for prod
+
+
 class ProductionConfig(Config):
     ENVI = 'production'
 
@@ -71,4 +76,3 @@ class DevelopmentConfig(Config):
     TRACE = False
     ENVI = 'development'
     BIND_PORT = 5000
-

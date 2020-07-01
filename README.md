@@ -1,5 +1,4 @@
-Agent-Jones
-===========
+# Agent-Jones
 
 Agent-Jones is a web-service used to configure and retrieve info from Cisco devices.
 Mostly switches, but it could as well be used for routers. Its goal is to serve as a back-end
@@ -7,15 +6,12 @@ for nice GUIs and collectors applications. As such, it doesn't have any GUI.
 
 The whole stuff is written in Python, using the [Flask](http://flask.pocoo.org/) micro-framework, and a very nice SNMP lib for Python called snimpy [1](http://vincent.bernat.im/en/blog/2013-snimpy.html), [2](https://github.com/vincentbernat/snimpy).
 
-
-Status
-------
+## Status
 
 - Version `11.3.2020` with Python 3.x should be considered as beta, because I could not try every case. Especially the "write-functions" haven't been tested. Get in touch if you see an issue. This version is not deployed anywhere, because the intended use (cbQoS polling on Cisco 3850) is not working (a Cisco limitation).
 - Version `22.5.2017` with Python 2.x is considered stable, and deployed on at least 3 major networks with 1'000+ devices, WAN and LAN, routers and switches, all Cisco.
 
-Features
---------
+## Features
 
 - Get info from a single device.
 - Save the running-config to startup-config.
@@ -32,47 +28,46 @@ Features
 - Get the ARP table (MAC to IP).
 - SNMP get or walk on a OID
 - CBQoS (Class-Based Quality of Service) information for each interface.
-- command-line CBQoS parser script. 
+- command-line CBQoS parser script.
 - Run commands over SSH
 
-
-Screenshots
------------
+## Screenshots
 
 Everyone wants screenshots. Here are some for "device info" and "interface list", when tested from [Postman](http://www.getpostman.com/).
-	![device info](doc/aj_device.png?raw=true).
-	![interface list](doc/aj_interfaces.png?raw=true).
+![device info](doc/aj_device.png?raw=true).
+![interface list](doc/aj_interfaces.png?raw=true).
 
-
-Limitations
------------
+## Limitations
 
 - not tested on non-Cisco devices. It could work because I used mostly "standard" MIBs (whatever "standard" means in this context).
 
-
-Assumptions
------------
+## Assumptions
 
 The following IOS commands might be present on modeled devices to allow for long-term indices persistence, but their presence is not mandatory. They are anyway a good starting point for your Cisco configuration templates.
 
     snmp-server ifindex persist
     snmp mib persist cbqos
 
-
-Release Notes
--------------
+## Release Notes
 
 See the [release notes](doc/RELEASES.md).
 
+## Installation - Docker
 
-Installation
-------------
+```shell
+sudo docker build . -t agent-jones-v2
+sudo docker run \
+ -v /path/to/config/config_template.py:/usr/src/app/aj/config.py:ro \
+ -v /path/to/config/credentials_template.py:/usr/src/app/aj/credentials.py:ro \
+ -v /path/to/config/auth_external_template.py:/usr/src/app/aj/auth_external.py:ro \
+ agent-jones-v2
+```
+
+## Installation
 
 Read the [installation guide](doc/INSTALL.md).
 
-
-Usage
------
+## Usage
 
 Using the web-service is as easy as any such web-service. This is an example with curl, adapt to your own language.
 
@@ -92,9 +87,7 @@ If you expect any long output, you need to pass “terminal length 0” as first
 
 [See more examples](doc/examples.md).
 
-
-command-line CBQoS parser script
---------------------------------
+## command-line CBQoS parser script
 
 This script is a utility tool, not directly used within Agent-Jones. It is here to debug / visualize Cisco CBQoS configuration (if you have looked at the CISCO-CLASS-BASED-QOS-MIB, you know what I mean). See `util/qos_parser.py`. You need a virtualenv with `pysnmp` installed to run it, tested with Python 3.7 and 3.8.
 
@@ -109,59 +102,43 @@ python3 ./qos_parser.py -c community -d device -p 161 -j /tmp/output.json [-D]
 
 The JSON output file is similar to what Agent-Jones provides with the `/qos/` API endpoint.
 
-
-API Documentation
------------------
+## API Documentation
 
     http://0.0.0.0:5000/xdoc/
 
-
-Troubleshooting
----------------
+## Troubleshooting
 
 There is a log file defined in config.py. Tail it. Same way, check the Apache log files if you implemented it as a WSGI application.
 
-
-Dependencies
-------------
+## Dependencies
 
 - works as a virtualenv to protect your instance from courageaous system-admins using OS-upgrade without too much knowledge.
 - python 3.7 or 3.8 (might work for older 3.x versions if you get the dependencies installed)
+- libsmi (C library allowing NM apps and MIB and PIB authoring tools to access SMI MIB info.)
 
-Todo
-----
+## Todo
 
 - See [ToDO](doc/TODO.md)
 
-
-Extension / development
------------------------
+## Extension / development
 
 be sure to understand Flask-restful and snimpy, then the code should be easy to extend.
 
-
-License
--------
+## License
 
 GPL V2.
 
-
-Author
-------
+## Author
 
 - [Charles Bueche](http://www.netnea.com/cms/netnea-the-team/charles-bueche/) wrote the initial version.
 
-
-Support
--------
+## Support
 
 Start by [reading the FAQ](doc/FAQ.md).
 
 For easy questions, [feel free to email me](http://address-protector.com/frTvcQ8oOaRDkfAzpUdS3oXFYt7cPQ8kLrI4lg2n4TblNc83DGf4yhBUfdrndqvn). For more, I will be very happy to provide commercial support.
 
-
-Credits
--------
+## Credits
 
 - [SPIE ICS AG, Bern](http://www.spie-ics.ch)
 - [Vincent Bernat](http://vincent.bernat.im/en/)
