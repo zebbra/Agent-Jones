@@ -21,20 +21,23 @@ import sys
 import os
 import re
 import json
-import urllib2
+import urllib.request
 import tempfile
 
 
 # --------------------------------------------------------------------------------
 def main():
-# --------------------------------------------------------------------------------
+    # --------------------------------------------------------------------------------
 
     # script parameters
     print("Start")
     parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--input", dest="input", default="", help="input in URL format. Can be file:///tmp/enterprise-numbers or http://www.iana.org/assignments/enterprise-numbers")
-    parser.add_argument("-o", "--output", dest="output", default="", help="output file, eg ./enterprise-numbers.json")
-    parser.add_argument("-d", "--debug", action="store_true", help="Print debug information")
+    parser.add_argument("-i", "--input", dest="input", default="",
+                        help="input in URL format. Can be file:///tmp/enterprise-numbers or http://www.iana.org/assignments/enterprise-numbers")
+    parser.add_argument("-o", "--output", dest="output", default="",
+                        help="output file, eg ./enterprise-numbers.json")
+    parser.add_argument("-d", "--debug", action="store_true",
+                        help="Print debug information")
     params = parser.parse_args()
     input_url = params.input
     output_file = params.output
@@ -47,7 +50,8 @@ def main():
 
     temp_file = get_from_url(input_url)
     if debug:
-        print("IF=<%s>, TMP=<%s>, OUT=<%s>" % (input_url, temp_file, output_file))
+        print("IF=<%s>, TMP=<%s>, OUT=<%s>" %
+              (input_url, temp_file, output_file))
 
     # conversion
     entries = iana_to_json(temp_file, output_file)
@@ -60,7 +64,7 @@ def main():
 
 # --------------------------------------------------------------------------------
 def iana_to_json(temp_file, output_file):
-# --------------------------------------------------------------------------------
+    # --------------------------------------------------------------------------------
 
     # temp file
     try:
@@ -75,7 +79,8 @@ def iana_to_json(temp_file, output_file):
     # read until the data start (0 - Reserved)
     while True:
         line = fp.readline()
-        if not line: break
+        if not line:
+            break
 
         # remove end of line
         line = line.rstrip()
@@ -123,9 +128,11 @@ def iana_to_json(temp_file, output_file):
             # skip the first, empty block
             if len(block) > 0:
                 valid_entries += 1
-                status, decimal, organization, contact, email = analyze_block(block)
+                status, decimal, organization, contact, email = analyze_block(
+                    block)
                 if status:
-                    enterprises[decimal] = {'o': organization, 'c': contact, 'e': email}
+                    enterprises[decimal] = {
+                        'o': organization, 'c': contact, 'e': email}
             # and now start a new block
             block = []
             decimal = line.strip()
@@ -146,9 +153,11 @@ def iana_to_json(temp_file, output_file):
             # and stores the last found block
             block.pop()
             valid_entries += 1
-            status, decimal, organization, contact, email = analyze_block(block)
+            status, decimal, organization, contact, email = analyze_block(
+                block)
             if status:
-                enterprises[decimal] = {'o': organization, 'c': contact, 'e': email}
+                enterprises[decimal] = {
+                    'o': organization, 'c': contact, 'e': email}
 
             if debug:
                 print("found footer, exit read loop")
@@ -159,14 +168,14 @@ def iana_to_json(temp_file, output_file):
 
     # write data structure to output file
     with open(output_file, 'w') as of:
-      json.dump(enterprises, of)
+        json.dump(enterprises, of)
 
     return valid_entries
 
 
 # --------------------------------------------------------------------------------
 def analyze_block(block):
-# --------------------------------------------------------------------------------
+    # --------------------------------------------------------------------------------
 
     if debug:
         print("analyzing block %s" % block)
@@ -233,7 +242,7 @@ def analyze_block(block):
 
 # --------------------------------------------------------------------------------
 def clean(input):
-# --------------------------------------------------------------------------------
+    # --------------------------------------------------------------------------------
 
     output = input.strip()
     output = re.sub(r'\s+', ' ', output)
@@ -242,14 +251,16 @@ def clean(input):
 
 # --------------------------------------------------------------------------------
 def get_from_url(url):
-# --------------------------------------------------------------------------------
+    # --------------------------------------------------------------------------------
 
-    tmp = tempfile.NamedTemporaryFile(prefix = 'iana_en_', suffix = '.tmp', delete = False)
+    tmp = tempfile.NamedTemporaryFile(
+        prefix='iana_en_', suffix='.tmp', delete=False)
     print("reading from %s" % url)
-    urldata = urllib2.urlopen(url)
+    urldata = urllib.request.urlopen(url)
     while True:
         line = urldata.readline()
-        if not line: break
+        if not line:
+            break
         tmp.write(line)
 
     tmp.close()
@@ -258,5 +269,5 @@ def get_from_url(url):
 
 # --------------------------------------------------------------------------------
 if __name__ == "__main__":
-# --------------------------------------------------------------------------------
+    # --------------------------------------------------------------------------------
     main()
