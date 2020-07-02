@@ -1,0 +1,42 @@
+###
+### PUBLISH PIPELINE
+###
+kind: pipeline
+name: publish
+trigger:
+  event: [tag]
+
+steps:
+  - name: imagebuild
+    image: plugins/docker
+    settings:
+      username: { from_secret: quay_username }
+      password: { from_secret: quay_password }
+      registry: quay.io
+      repo: quay.io/zebbra/agent-jones
+      # tags: "${DRONE_TAG}"
+      build_args:
+        - AGENT_JONES_VERSION=${DRONE_TAG}
+      auto_tag: true
+      cache_from:
+        - quay.io/zebbra/agent-jones:${DRONE_COMMIT_SHA:0:7}
+      mtu: 1316
+  - name: publish
+    image: plugins/github-release
+    settings:
+      api_key: { from_secret: github_api_token }
+      files:
+        - README.md
+      checksum:
+        - md5
+        - sha1
+        - sha256
+        - sha512
+        - adler32
+        - crc32
+      title: "Release ${DRONE_TAG} [Drone]"
+      note: "See CHANGELOG.md"
+    when:
+      event: tag
+---
+
