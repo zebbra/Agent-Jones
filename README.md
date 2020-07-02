@@ -67,7 +67,7 @@ sudo docker run \
 
 ```shell
 cd docker-compose/parallel_loadbalanced
-sudo docker network create traefik
+sudo docker network create traefik-agent-jones
 sudo docker-compose up --scale agent-jones=4
 ```
 

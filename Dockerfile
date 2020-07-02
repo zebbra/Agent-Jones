@@ -15,4 +15,6 @@ COPY util util
 
 RUN cd util && python3.7 iana_enterprise_numbers_convert.py -i http://www.iana.org/assignments/enterprise-numbers -o ./../aj/etc/enterprise-numbers.json
 
+EXPOSE 80
+
 CMD [ "python3.7", "./aj/aj.py" ]
