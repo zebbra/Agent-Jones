@@ -1,32 +1,49 @@
 version: "3.8"
 
 services:
-  # traefik:
-  #   image: "traefik:v2.2"
-  #   container_name: "traefik"
-  #   command:
-  #     #- "--log.level=DEBUG"
-  #     - "--api.insecure=true"
-  #     - "--providers.docker=true"
-  #     - "--providers.docker.exposedbydefault=false"
-  #     - "--entrypoints.web.address=:80"
-  #   ports:
-  #     - "80:80"
-  #     - "8080:8080"
-  #   volumes:
-  #     - "/var/run/docker.sock:/var/run/docker.sock:ro"
+  traefik:
+    image: "traefik:v2.2"
+    container_name: "traefik"
+    command:
+      #- "--log.level=DEBUG"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+      - "8080:8080"
+    expose:
+      - "8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    restart: "always"
+    labels:
+      traefik.enable: "true"
+      # traefik.frontend.rule: "Host:${PUBLIC_TRAEFIK_HOSTNAME}"
+      traefik.port: "8080"
+    environment:
+      no_proxy: "*"
+      NO_PROXY: "*"
+    networks:
+      - traefik
 
   agent-jones:
+    networks:
+      - traefik
     image: "agent-jones"
-    # labels:
-    # - "traefik.enable=true"
-    # - "traefik.http.routers.whoami.rule=Host(`localhost`)"
-    # - "traefik.http.routers.whoami.entrypoints=web"
+    labels:
+      - "traefik.frontend.rule=Host:${PUBLIC_NEOPS_HOSTNAME}"
+      - "traefik.docker.network=traefik"
+      - "traefik.enable=true"
+      - "traefik.protocol=http"
+      - "traefik.port=80"
     volumes:
       - "./config.py:/usr/src/app/aj/config.py:ro"
       - "./credentials.py:/usr/src/app/aj/credentials.py:ro"
       - "./auth_external.py:/usr/src/app/aj/auth_external.py:ro"
-    deploy:
-      mode: replicated
-      replicas: 4
-      endpoint_mode: vip
+    restart: "on-failure"
+
+networks:
+  traefik:
+    external: true

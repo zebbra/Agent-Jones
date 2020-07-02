@@ -63,6 +63,14 @@ sudo docker run \
  agent-jones-v2
 ```
 
+## Installation with parallel instances using docker-compose
+
+```shell
+cd docker-compose/parallel_loadbalanced
+sudo docker network create traefik
+sudo docker-compose up --scale agent-jones=4
+```
+
 ## Installation
 
 Read the [installation guide](doc/INSTALL.md).
