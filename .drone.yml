@@ -38,5 +38,3 @@ steps:
       note: "See CHANGELOG.md"
     when:
       event: tag
----
-
