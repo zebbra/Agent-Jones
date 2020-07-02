@@ -31,7 +31,7 @@ services:
   agent-jones:
     networks:
       - traefik-agent-jones
-    image: "agent-jones"
+    image: "quay.io/zebbra/agent-jones:1"
     labels:
       - "traefik.frontend.rule=Host:${PUBLIC_NEOPS_HOSTNAME}"
       - "traefik.docker.network=traefik"
