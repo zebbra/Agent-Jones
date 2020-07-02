@@ -26,11 +26,11 @@ services:
       no_proxy: "*"
       NO_PROXY: "*"
     networks:
-      - traefik
+      - traefik-agent-jones
 
   agent-jones:
     networks:
-      - traefik
+      - traefik-agent-jones
     image: "agent-jones"
     labels:
       - "traefik.frontend.rule=Host:${PUBLIC_NEOPS_HOSTNAME}"
@@ -45,5 +45,5 @@ services:
     restart: "on-failure"
 
 networks:
-  traefik:
+  traefik-agent-jones:
     external: true
