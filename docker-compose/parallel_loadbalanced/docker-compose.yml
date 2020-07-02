@@ -3,7 +3,7 @@ version: "3.8"
 services:
   traefik:
     image: "traefik:v2.2"
-    container_name: "traefik"
+    container_name: "traefik-agent-jones"
     command:
       #- "--log.level=DEBUG"
       - "--api.insecure=true"
@@ -11,8 +11,8 @@ services:
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
     ports:
-      - "80:80"
-      - "8080:8080"
+      - "${TRAEFIK_PORT}:80"
+      - "${TRAEFIK_DASHBOARD_PORT}:8080"
     expose:
       - "8080"
     volumes:
@@ -33,7 +33,7 @@ services:
       - traefik-agent-jones
     image: "quay.io/zebbra/agent-jones:1"
     labels:
-      - "traefik.frontend.rule=Host:${PUBLIC_NEOPS_HOSTNAME}"
+      - "traefik.frontend.rule=Host:${PUBLIC_TRAEFIK_HOSTNAME}"
       - "traefik.docker.network=traefik"
       - "traefik.enable=true"
       - "traefik.protocol=http"
