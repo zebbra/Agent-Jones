@@ -1,5 +1,10 @@
 # Agent-Jones
 
+This is a fork of [Charles Bueche](http://www.netnea.com/cms/netnea-the-team/charles-bueche/)'s Agent Jones, focussing on:
+
+- Python 3 (some code adjustments and dependency changes)
+- Dockerization, Horizontal scaling (see [docker-compose](./docker-compose))
+
 Agent-Jones is a web-service used to configure and retrieve info from Cisco devices.
 Mostly switches, but it could as well be used for routers. Its goal is to serve as a back-end
 for nice GUIs and collectors applications. As such, it doesn't have any GUI.
