@@ -33,8 +33,11 @@ services:
       - traefik-agent-jones
     image: "quay.io/zebbra/agent-jones:1.1"
     labels:
-      - "traefik.agent-jones.rule=Host:${PUBLIC_TRAEFIK_HOSTNAME}"
-      - "traefik.docker.network=traefik"
+      # - "traefik.agent-jones.rule=PathPrefix:/aj/"
+      # - "traefik.frontend.rule=Host('${PUBLIC_AJ_HOSTNAME}')"
+      - "traefik.http.routers.agent-jones.rule=Host(`${PUBLIC_AJ_HOSTNAME}`)"
+      - "traefik.http.routers.agent-jones.entrypoints=web"
+      - "traefik.docker.network=traefik-agent-jones"
       - "traefik.enable=true"
       - "traefik.protocol=http"
       - "traefik.port=80"
