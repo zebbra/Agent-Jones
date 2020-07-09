@@ -2,7 +2,7 @@ version: "3.3"
 
 services:
   traefik:
-    image: "traefik:v2.2"
+    image: "traefik:2.2"
     container_name: "traefik-agent-jones"
     command:
       #- "--log.level=DEBUG"
@@ -49,4 +49,4 @@ services:
 
 networks:
   traefik-agent-jones:
-    external: true
+    external: false
