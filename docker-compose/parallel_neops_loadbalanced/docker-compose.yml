@@ -1,0 +1,52 @@
+version: "3.8"
+
+services:
+  traefik:
+    image: "traefik:v2.2"
+    container_name: "traefik"
+    command:
+      #- "--log.level=DEBUG"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "${TRAEFIK_PORT}:80"
+      - "${TRAEFIK_DASHBOARD_PORT}:8080"
+    expose:
+      - "8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    restart: "always"
+    labels:
+      traefik.enable: "true"
+      # traefik.frontend.rule: "Host:${PUBLIC_TRAEFIK_HOSTNAME}"
+      traefik.port: "8080"
+    environment:
+      no_proxy: "*"
+      NO_PROXY: "*"
+    networks:
+      - traefik
+
+  agent-jones:
+    networks:
+      - traefik
+    image: "quay.io/zebbra/agent-jones:1.2"
+    labels:
+      # - "traefik.agent-jones.rule=PathPrefix:/aj/"
+      # - "traefik.frontend.rule=Host('${PUBLIC_AJ_HOSTNAME}')"
+      - "traefik.http.routers.agent-jones.rule=Host(`${PUBLIC_AJ_HOSTNAME}`)"
+      - "traefik.http.routers.agent-jones.entrypoints=web"
+      - "traefik.docker.network=traefik"
+      - "traefik.enable=true"
+      - "traefik.protocol=http"
+      - "traefik.port=80"
+    volumes:
+      - "./config.py:/usr/src/app/aj/config.py:ro"
+      - "./credentials.py:/usr/src/app/aj/credentials.py:ro"
+      - "./auth_external.py:/usr/src/app/aj/auth_external.py:ro"
+    restart: "on-failure"
+
+networks:
+  traefik:
+    external: true
