@@ -20,3 +20,7 @@ tags
 
 # OS X
 .DS_Store
+aj/log/aj.log
+aj/log/actions.log
+aj/Pipfile.lock
+aj/Pipfile

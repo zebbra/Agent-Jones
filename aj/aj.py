@@ -184,7 +184,8 @@ class DeviceAPI(Resource):
     @auth.login_required
     def get(self, devicename):
 
-        logger.debug('fn=DeviceAPI/get : src=%s, device=%s' % (request.remote_addr, devicename))
+        logger.debug('fn=DeviceAPI/get : src=%s, device=%s' %
+                     (request.remote_addr, devicename))
         logaction(classname='DeviceAPI', methodname='get', devicename=devicename,
                   src_ip=request.remote_addr, src_user=auth.username())
 
@@ -193,7 +194,8 @@ class DeviceAPI(Resource):
         deviceinfo = autovivification.AutoVivification()
         deviceinfo['name'] = devicename
 
-        logger.debug('fn=DeviceAPI/get : %s : requesting a SNMP manager' % (devicename))
+        logger.debug(
+            'fn=DeviceAPI/get : %s : requesting a SNMP manager' % (devicename))
         m, errors = snimpy.create(devicename=devicename, bulk=False)
 
         if m is None:
@@ -202,7 +204,8 @@ class DeviceAPI(Resource):
         if not check.check_snmp(m, devicename, 'RO'):
             return errst.status('ERROR_SNMP', 'SNMP test failed'), 200
 
-        logger.debug('fn=DeviceAPI/get : %s : request device info' % devicename)
+        logger.debug('fn=DeviceAPI/get : %s : request device info' %
+                     devicename)
         # generic SNMP stuff
         try:
 
@@ -219,13 +222,18 @@ class DeviceAPI(Resource):
 
             deviceinfo['sysUpTime'] = int(m.sysUpTime) / 100
 
-            logger.debug('fn=DeviceAPI/get : %s : get serial numbers' % devicename)
-            (deviceinfo['cswMaxSwitchNum'], deviceinfo['entities']) = self.get_serial(m, devicename)
-            logger.trace('fn=DeviceAPI/get : %s : back from get_serial' % devicename)
+            logger.debug(
+                'fn=DeviceAPI/get : %s : get serial numbers' % devicename)
+            (deviceinfo['cswMaxSwitchNum'], deviceinfo['entities']
+             ) = self.get_serial(m, devicename)
+            logger.trace(
+                'fn=DeviceAPI/get : %s : back from get_serial' % devicename)
 
             # sysoid mapping
-            logger.trace('fn=DeviceAPI/get : %s : translate_sysoid %s' % (devicename, deviceinfo['sysObjectID']))
-            (deviceinfo['hwVendor'], deviceinfo['hwModel']) = sysoidmap.translate_sysoid(deviceinfo['sysObjectID'])
+            logger.trace('fn=DeviceAPI/get : %s : translate_sysoid %s' %
+                         (devicename, deviceinfo['sysObjectID']))
+            (deviceinfo['hwVendor'], deviceinfo['hwModel']
+             ) = sysoidmap.translate_sysoid(deviceinfo['sysObjectID'])
 
         except Exception as e:
             logger.error(
@@ -243,7 +251,8 @@ class DeviceAPI(Resource):
                     'nominal_power': m.pethMainPsePower[poe_module]
                 })
             deviceinfo['pethMainPsePower'] = poe_modules
-            logger.debug('fn=DeviceAPI/get : %s : poe info collection ok' % devicename)
+            logger.debug(
+                'fn=DeviceAPI/get : %s : poe info collection ok' % devicename)
 
         except Exception as e:
             # POE is not that important, do not generate errors for it
@@ -260,7 +269,6 @@ class DeviceAPI(Resource):
                     (devicename, deviceinfo['query-duration']))
         return deviceinfo
 
-
     def get_serial(self, m, devicename):
         ''' get the serial numbers using the Entity-MIB
 
@@ -270,24 +278,26 @@ class DeviceAPI(Resource):
 
         # first, find out if the switch is stacked :
         # when working, use 0 for non stack and 1 for stacks in the top-parent search below
-        logger.debug("fn=DeviceAPI/get_serial : %s : count switch members" % devicename)
+        logger.debug(
+            "fn=DeviceAPI/get_serial : %s : count switch members" % devicename)
         counter = 0
         try:
             for index, value in m.cswSwitchNumCurrent.iteritems():
                 logging.debug(
                     'fn=DeviceAPI/get_serial cswSwitchNumCurrent entry %s, %s' % (
-                    index, value))
+                        index, value))
                 counter += 1
         except snmp.SNMPException as e:
             logger.info(
                 "fn=DeviceAPI/get_serial : %s : SNMPException in get_serial/get-cswSwitchNumCurrent : <%s>" % (
-                devicename, e))
+                    devicename, e))
         except Exception as e:
             logger.info(
                 "fn=DeviceAPI/get_serial : %s : Exception in get_serial/get-cswSwitchNumCurrent : <%s>" % (
-                devicename, e))
+                    devicename, e))
 
-        logger.debug("fn=DeviceAPI/get_serial : %s : walk entPhysicalClass" % devicename)
+        logger.debug(
+            "fn=DeviceAPI/get_serial : %s : walk entPhysicalClass" % devicename)
         # see OBJECT entPhysicalClass in ENTITY-MIB.my
         interesting_classes = [3, 6, 9, 11]    # chassis, psu, module, stack
         # to reformat the class for humans
@@ -297,31 +307,34 @@ class DeviceAPI(Resource):
             for index, value in m.entPhysicalClass.iteritems():
                 if value in interesting_classes:
                     hardware_info.append({
-                        'physicalIndex':        index,
-                        'physicalDescr':        m.entPhysicalDescr[index],
-                        'physicalHardwareRev':  m.entPhysicalHardwareRev[index],
-                        'physicalFirmwareRev':  m.entPhysicalFirmwareRev[index],
-                        'physicalSoftwareRev':  m.entPhysicalSoftwareRev[index],
-                        'physicalSerialNum':    m.entPhysicalSerialNum[index],
-                        'physicalName':         m.entPhysicalName[index],
-                        'physicalClass':        re.sub(class_regex, '', str(m.entPhysicalClass[index]))
+                        'physicalIndex': index,
+                        'physicalDescr': m.entPhysicalDescr[index],
+                        'physicalHardwareRev': m.entPhysicalHardwareRev[index],
+                        'physicalFirmwareRev': m.entPhysicalFirmwareRev[index],
+                        'physicalSoftwareRev': m.entPhysicalSoftwareRev[index],
+                        'physicalSerialNum': m.entPhysicalSerialNum[index],
+                        'physicalName': m.entPhysicalName[index],
+                        'physicalClass': re.sub(class_regex, '', str(m.entPhysicalClass[index]))
                     })
         except snmp.SNMPException as e:
             logger.info(
                 "fn=DeviceAPI/get_serial : %s : SNMPException in get_serial/get-entPhysicalClass : <%s>" % (
-                devicename, e))
+                    devicename, e))
         except Exception as e:
             logger.info(
                 "fn=DeviceAPI/get_serial : %s : Exception in get_serial/get-entPhysicalClass : <%s>" % (
-                devicename, e))
+                    devicename, e))
 
         # found something ?
         if len(hardware_info) == 0:
-            logger.warning("fn=DeviceAPI/get_serial : %s : could not get an entity parent" % devicename)
+            logger.warning(
+                "fn=DeviceAPI/get_serial : %s : could not get an entity parent" % devicename)
         else:
-            logger.debug("fn=DeviceAPI/get_serial : %s : got %s serial(s)" % (devicename, len(hardware_info)))
+            logger.debug("fn=DeviceAPI/get_serial : %s : got %s serial(s)" %
+                         (devicename, len(hardware_info)))
 
-        logger.trace("fn=DeviceAPI/get_serial : %s : returning counter=%s, hardware_info=%s)" % (devicename, len(hardware_info), hardware_info))
+        logger.trace("fn=DeviceAPI/get_serial : %s : returning counter=%s, hardware_info=%s)" %
+                     (devicename, len(hardware_info), hardware_info))
         return (counter, hardware_info)
 
 
@@ -341,7 +354,8 @@ class DeviceActionAPI(Resource):
     # check argument
     def __init__(self):
         self.reqparse = reqparse.RequestParser()
-        self.reqparse.add_argument('type', type=str, required=True, help='No action provided')
+        self.reqparse.add_argument(
+            'type', type=str, required=True, help='No action provided')
         self.reqparse.add_argument('clientinfo', type=str, required=False,
                                    help='Passed by the client to log the upstream user information, e.g. its username.')
         super(DeviceActionAPI, self).__init__()
@@ -424,7 +438,8 @@ class DeviceSaveAPI(Resource):
     # check argument
     def __init__(self):
         self.reqparse = reqparse.RequestParser()
-        self.reqparse.add_argument('uuid', type=str, required=mandate_uuid, help='No uuid provided')
+        self.reqparse.add_argument(
+            'uuid', type=str, required=mandate_uuid, help='No uuid provided')
         self.reqparse.add_argument('clientinfo', type=str, required=False,
                                    help='Passed by the client to log the upstream user information, e.g. its username.')
         super(DeviceSaveAPI, self).__init__()
@@ -442,7 +457,8 @@ class DeviceSaveAPI(Resource):
 
         tstart = datetime.now()
 
-        logger.debug('fn=DeviceSaveAPI/put : %s : requesting a SNMP manager' % (devicename))
+        logger.debug(
+            'fn=DeviceSaveAPI/put : %s : requesting a SNMP manager' % (devicename))
         m, errors = snimpy.create(devicename=devicename, cache=0, rw=True)
 
         if m is None:
@@ -560,7 +576,8 @@ class InterfaceAPI(Resource):
     @auth.login_required
     def get(self, devicename):
 
-        logger.debug('fn=InterfaceAPI/get : src=%s, %s' % (request.remote_addr, devicename))
+        logger.debug('fn=InterfaceAPI/get : src=%s, %s' %
+                     (request.remote_addr, devicename))
 
         tstart = datetime.now()
 
@@ -578,7 +595,8 @@ class InterfaceAPI(Resource):
         logaction(classname='InterfaceAPI', methodname='get', devicename=devicename,
                   params=args, src_ip=request.remote_addr, src_user=auth.username())
 
-        logger.debug('fn=InterfaceAPI/get : %s : requesting a SNMP manager' % (devicename))
+        logger.debug(
+            'fn=InterfaceAPI/get : %s : requesting a SNMP manager' % (devicename))
         m, errors = snimpy.create(devicename=devicename)
 
         if m is None:
@@ -594,16 +612,19 @@ class InterfaceAPI(Resource):
         # collect the mapping between interfaces and entities
         # constructs a table (dict) 'ifname' --> 'enclosing-chassis'
         # e.g. {<String: GigabitEthernet1/0/5>: <Integer: 1001>, etc}
-        logger.debug('fn=InterfaceAPI/get : %s : start poll EntityMIB' % (devicename))
+        logger.debug(
+            'fn=InterfaceAPI/get : %s : start poll EntityMIB' % (devicename))
         entities = self.collect_entities(m, devicename)
         merged_entities = self.merge_entities(entities, devicename)
         entities_if_to_chassis = self.get_ports(merged_entities, devicename)
-        logger.debug('fn=InterfaceAPI/get : %s : end poll EntityMIB, %s ports found' % (devicename, len(entities_if_to_chassis)))
+        logger.debug('fn=InterfaceAPI/get : %s : end poll EntityMIB, %s ports found' %
+                     (devicename, len(entities_if_to_chassis)))
 
         # get the mac list
         if showmac:
             macAPI = MacAPI()
-            macs, total_mac_entries = macAPI.get_macs_from_device(devicename, m)
+            macs, total_mac_entries = macAPI.get_macs_from_device(
+                devicename, m)
 
         # collect the voice vlans
         if showvlannames:
@@ -620,7 +641,8 @@ class InterfaceAPI(Resource):
 
         if showdhcp:
             dhcpAPI = DHCPsnoopAPI()
-            dhcp_snooping_entries = dhcpAPI.get_dhcp_snooping_from_device(devicename, m)
+            dhcp_snooping_entries = dhcpAPI.get_dhcp_snooping_from_device(
+                devicename, m)
 
         if showtrunks:
             trunkAPI = TrunkAPI()
@@ -637,55 +659,78 @@ class InterfaceAPI(Resource):
         # ifDescr has most of the time the format "GigabitEthernet1/0/1"
         logger.debug('fn=InterfaceAPI/get : %s : get ifDescr' % devicename)
         for index, desc in m.ifDescr.iteritems():
-            logger.trace('fn=InterfaceAPI/get : %s : index = %s, desc = %s' % (devicename, index, desc))
+            logger.trace(
+                'fn=InterfaceAPI/get : %s : index = %s, desc = %s' % (devicename, index, desc))
             interfaces[index]['ifDescr'] = desc
 
         # ifName has most of the time the format "Gi1/0/1"
         logger.debug('fn=InterfaceAPI/get : %s : get ifName' % devicename)
         for index, name in m.ifName.iteritems():
-            logger.trace('fn=InterfaceAPI/get : %s : index = %s, name = %s' % (devicename, index, name))
+            logger.trace(
+                'fn=InterfaceAPI/get : %s : index = %s, name = %s' % (devicename, index, name))
             interfaces[index]['ifName'] = name
 
-        logger.debug('fn=InterfaceAPI/get : %s : get ifAdminStatus' % devicename)
+        logger.debug('fn=InterfaceAPI/get : %s : get ifAdminStatus' %
+                     devicename)
         for index, adminstatus in m.ifAdminStatus.iteritems():
-            logger.trace('fn=InterfaceAPI/get : %s : index = %s, admin-status = %s' % (devicename, index, adminstatus))
-            interfaces[index]['ifAdminStatus'], interfaces[index]['ifAdminStatusText'] = util.translate_status(str(adminstatus))
+            logger.trace('fn=InterfaceAPI/get : %s : index = %s, admin-status = %s' %
+                         (devicename, index, adminstatus))
+            interfaces[index]['ifAdminStatus'], interfaces[index]['ifAdminStatusText'] = util.translate_status(
+                str(adminstatus))
 
-        logger.debug('fn=InterfaceAPI/get : %s : get ifOperStatus' % devicename)
+        logger.debug('fn=InterfaceAPI/get : %s : get ifOperStatus' %
+                     devicename)
         for index, operstatus in m.ifOperStatus.iteritems():
-            logger.trace('fn=InterfaceAPI/get : %s : index = %s, oper-status = %s' % (devicename, index, operstatus))
-            interfaces[index]['ifOperStatus'], interfaces[index]['ifOperStatusText'] = util.translate_status(str(operstatus))
+            logger.trace('fn=InterfaceAPI/get : %s : index = %s, oper-status = %s' %
+                         (devicename, index, operstatus))
+            interfaces[index]['ifOperStatus'], interfaces[index]['ifOperStatusText'] = util.translate_status(
+                str(operstatus))
 
         logger.debug('fn=InterfaceAPI/get : %s : get ifType' % devicename)
         for index, iftype in m.ifType.iteritems():
-            logger.trace('fn=InterfaceAPI/get : %s : index = %s, iftype = %s' % (devicename, index, iftype))
+            logger.trace('fn=InterfaceAPI/get : %s : index = %s, iftype = %s' %
+                         (devicename, index, iftype))
             interfaces[index]['ifType'] = str(iftype)
 
         logger.debug('fn=InterfaceAPI/get : %s : get ifMtu' % devicename)
         for index, ifmtu in m.ifMtu.iteritems():
-            logger.trace('fn=InterfaceAPI/get : %s : index = %s, ifmtu = %s' % (devicename, index, ifmtu))
+            logger.trace('fn=InterfaceAPI/get : %s : index = %s, ifmtu = %s' %
+                         (devicename, index, ifmtu))
             interfaces[index]['ifMtu'] = ifmtu
 
         logger.debug('fn=InterfaceAPI/get : %s : get ifSpeed' % devicename)
         for index, ifspeed in m.ifSpeed.iteritems():
-            logger.trace('fn=InterfaceAPI/get : %s : index = %s, ifspeed = %s' % (devicename, index, ifspeed))
+            logger.trace('fn=InterfaceAPI/get : %s : index = %s, ifspeed = %s' %
+                         (devicename, index, ifspeed))
             interfaces[index]['ifSpeed'] = ifspeed
+
+        logger.debug('fn=InterfaceAPI/get : %s : get ifHighSpeed' % devicename)
+        for index, ifspeed in m.ifHighSpeed.iteritems():
+            logger.trace('fn=InterfaceAPI/get : %s : index = %s, ifspeed = %s' %
+                         (devicename, index, ifspeed))
+            # fix use ifHighSpeed if ifSpeed is max value
+            if interfaces[index]['ifSpeed'] == 4294967295:
+                interfaces[index]['ifSpeed'] = ifspeed * 1000 * 1000
 
         logger.debug('fn=InterfaceAPI/get : %s : get ifAlias' % devicename)
         for index, ifalias in m.ifAlias.iteritems():
-            logger.trace('fn=InterfaceAPI/get : %s : index = %s, ifalias = %s' % (devicename, index, ifalias))
+            logger.trace('fn=InterfaceAPI/get : %s : index = %s, ifalias = %s' %
+                         (devicename, index, ifalias))
             interfaces[index]['ifAlias'] = str(ifalias)
 
-        logger.debug('fn=InterfaceAPI/get : %s : get dot3StatsDuplexStatus' % devicename)
+        logger.debug(
+            'fn=InterfaceAPI/get : %s : get dot3StatsDuplexStatus' % devicename)
         for index, duplex in m.dot3StatsDuplexStatus.iteritems():
-            logger.trace('fn=InterfaceAPI/get : %s : index = %s, duplex = %s' % (devicename, index, duplex))
+            logger.trace('fn=InterfaceAPI/get : %s : index = %s, duplex = %s' %
+                         (devicename, index, duplex))
             # only if this interface already exists (some Cisco switches produce phantom entries in dot3StatsDuplexStatus)
             if index in interfaces:
                 interfaces[index]['dot3StatsDuplexStatus'] = str(duplex)
 
         logger.debug('fn=InterfaceAPI/get : %s : get vmVlan' % devicename)
         for index, vlan_id in m.vmVlan.iteritems():
-            logger.trace('fn=InterfaceAPI/get : %s : index = %s, vlan_id = %s' % (devicename, index, vlan_id))
+            logger.trace('fn=InterfaceAPI/get : %s : index = %s, vlan_id = %s' %
+                         (devicename, index, vlan_id))
             # only if this interface already exists (no risk after the experience with dot3StatsDuplexStatus)
             if index in interfaces:
                 interfaces[index]['vmVlanNative']['nr'] = vlan_id
@@ -704,11 +749,13 @@ class InterfaceAPI(Resource):
 
             # missing admin-status (never seen this case)
             if not 'ifAdminStatus' in interfaces[interface]:
-                interfaces[interface]['ifAdminStatus'], interfaces[interface]['ifAdminStatusText'] = util.translate_status(str(None))
+                interfaces[interface]['ifAdminStatus'], interfaces[interface]['ifAdminStatusText'] = util.translate_status(
+                    str(None))
 
             # missing oper-status (never seen this case)
             if not 'ifOperStatus' in interfaces[interface]:
-                interfaces[interface]['ifOperStatus'], interfaces[interface]['ifOperStatusText'] = util.translate_status(str(None))
+                interfaces[interface]['ifOperStatus'], interfaces[interface]['ifOperStatusText'] = util.translate_status(
+                    str(None))
 
             # missing ifType (never seen this case)
             if not 'ifType' in interfaces[interface]:
@@ -735,7 +782,8 @@ class InterfaceAPI(Resource):
                 interfaces[interface]['vmVlanNative']['nr'] = None
 
         # now we add the stuff that we collected above the ifTable/get-bulk operations
-        logger.debug('fn=InterfaceAPI/get : %s : loop over the interfaces' % devicename)
+        logger.debug(
+            'fn=InterfaceAPI/get : %s : loop over the interfaces' % devicename)
         for index in interfaces:
 
             # ease the flatify below
@@ -744,25 +792,29 @@ class InterfaceAPI(Resource):
             # try to map the ifDescr / ifName to a physical entity, namely the enclosing chassis
             desc = interfaces[index]['ifDescr']
             name = interfaces[index]['ifName']
-            logger.debug('fn=InterfaceAPI/get : %s : matching interface index=%s, desc=%s, name=%s' % (devicename, index, desc, name))
+            logger.debug('fn=InterfaceAPI/get : %s : matching interface index=%s, desc=%s, name=%s' %
+                         (devicename, index, desc, name))
 
             # 1. try ifDesc first
             if desc in entities_if_to_chassis:
                 interfaces[index]['physicalIndex'] = entities_if_to_chassis[desc]['chassis']
-                logger.trace('fn=InterfaceAPI/get : %s : ifDescr (%s) found in physical entities' % (devicename, desc))
+                logger.trace(
+                    'fn=InterfaceAPI/get : %s : ifDescr (%s) found in physical entities' % (devicename, desc))
                 interfaces[index]['vendorType'] = entities_if_to_chassis[desc]['vendtypename']
 
             # 2. try ifName (works for IOS-XE)
             elif name in entities_if_to_chassis:
                 interfaces[index]['physicalIndex'] = entities_if_to_chassis[name]['chassis']
-                logger.trace('fn=InterfaceAPI/get : %s : ifName (%s) found in physical entities' % (devicename, name))
+                logger.trace(
+                    'fn=InterfaceAPI/get : %s : ifName (%s) found in physical entities' % (devicename, name))
                 interfaces[index]['vendorType'] = entities_if_to_chassis[name]['vendtypename']
 
             # this interface does not exist in entity table. That would be normal in a lot of cases,
             # e.g. interface containers without module, virtual interfaces, trunks, etc.
             else:
                 interfaces[index]['physicalIndex'] = None
-                logger.trace('fn=InterfaceAPI/get : %s : ifDescr (%s) or ifName (%s) not found in physical entities' % (devicename, desc,name))
+                logger.trace(
+                    'fn=InterfaceAPI/get : %s : ifDescr (%s) or ifName (%s) not found in physical entities' % (devicename, desc, name))
                 interfaces[index]['vendorType'] = None
 
             # VLANs (data and voice)
@@ -770,7 +822,8 @@ class InterfaceAPI(Resource):
 
                 # data vlans
                 # use a temp variable for clarity
-                logger.trace('fn=InterfaceAPI/get : %s : adding vlan names to %s' % (devicename, desc))
+                logger.trace(
+                    'fn=InterfaceAPI/get : %s : adding vlan names to %s' % (devicename, desc))
                 vtpVlanIndex = interfaces[index]['vmVlanNative']['nr']
                 if vtpVlanIndex in data_vlans:
                     data_vlan_name = data_vlans[vtpVlanIndex]['name']
@@ -797,7 +850,8 @@ class InterfaceAPI(Resource):
 
             # Macs
             if showmac:
-                logger.trace('fn=InterfaceAPI/get : %s : adding MAC collection to %s' % (devicename, desc))
+                logger.trace(
+                    'fn=InterfaceAPI/get : %s : adding MAC collection to %s' % (devicename, desc))
                 if index in macs:
                     interfaces[index]['macs'] = macs[index]
                 else:
@@ -805,22 +859,27 @@ class InterfaceAPI(Resource):
 
             # POE
             if showpoe:
-                logger.trace('fn=InterfaceAPI/get : %s : adding POE info to %s' % (devicename, desc))
+                logger.trace(
+                    'fn=InterfaceAPI/get : %s : adding POE info to %s' % (devicename, desc))
                 if interfaces[index]['ifDescr'] in poe:
-                    interfaces[index]['poeStatus'] = str(poe[interfaces[index]['ifDescr']]['status'])
-                    interfaces[index]['poePower'] = poe[interfaces[index]['ifDescr']]['power']
+                    interfaces[index]['poeStatus'] = str(
+                        poe[interfaces[index]['ifDescr']]['status'])
+                    interfaces[index]['poePower'] = poe[interfaces[index]
+                                                        ['ifDescr']]['power']
                 else:
                     interfaces[index]['poeStatus'] = ''
                     interfaces[index]['poePower'] = None
 
             # CDP
             if showcdp:
-                logger.trace('fn=InterfaceAPI/get : %s : adding CDP info to %s' % (devicename, desc))
+                logger.trace(
+                    'fn=InterfaceAPI/get : %s : adding CDP info to %s' % (devicename, desc))
                 interfaces[index]['cdp'] = {}
                 if index in cdps:
                     address_type = cdps[index]['cdpCacheAddressType']
                     if address_type in ('ipv4', 'ipv6'):
-                        interfaces[index]['cdp']["cdpCacheAddress"] = util.convert_ip_from_snmp_format(address_type, cdps[index]['cdpCacheAddress'])
+                        interfaces[index]['cdp']["cdpCacheAddress"] = util.convert_ip_from_snmp_format(
+                            address_type, cdps[index]['cdpCacheAddress'])
                     else:
                         interfaces[index]['cdp']["cdpCacheAddress"] = 'cannot convert SNMP value for address, unsupported type %s' % address_type
                     interfaces[index]['cdp']["cdpCacheVersion"] = cdps[index]["cdpCacheVersion"]
@@ -837,10 +896,10 @@ class InterfaceAPI(Resource):
                     interfaces[index]['cdp']["cdpCachePlatform"] = None
                     interfaces[index]['cdp']["cdpCacheLastChange"] = None
 
-
             # DHCP
             if showdhcp:
-                logger.trace('fn=InterfaceAPI/get : %s : adding DHCP info to %s' % (devicename, desc))
+                logger.trace(
+                    'fn=InterfaceAPI/get : %s : adding DHCP info to %s' % (devicename, desc))
                 # an interface might have more than one MAC-IP binding so
                 # make this is a list
                 interfaces[index]['dhcpsnoop'] = []
@@ -856,14 +915,14 @@ class InterfaceAPI(Resource):
 
             # Trunks
             if showtrunks:
-                logger.trace('fn=InterfaceAPI/get : %s : adding trunks info to %s' % (devicename, desc))
+                logger.trace(
+                    'fn=InterfaceAPI/get : %s : adding trunks info to %s' % (devicename, desc))
                 if index in trunks_entries:
                     interfaces[index]['trunkAdminState'] = trunks_entries[index]['trunkAdminState']
                     interfaces[index]['trunkOperState'] = trunks_entries[index]['trunkOperState']
                 else:
                     interfaces[index]['trunkAdminState'] = ''
                     interfaces[index]['trunkOperState'] = ''
-
 
         # now flatify the dict to an array, because that's what our consumer wants
         interfaces_array = []
@@ -890,7 +949,8 @@ class InterfaceAPI(Resource):
         '''
         # first, create a mapping EntPhyIndex --> port name (eg FastEthernet1/0/6),
         # as we don't have the if-idx in POE table below
-        logger.debug('fn=InterfaceAPI/get_poe : %s : create a mapping EntPhyIndex --> port name' % (devicename))
+        logger.debug(
+            'fn=InterfaceAPI/get_poe : %s : create a mapping EntPhyIndex --> port name' % (devicename))
 
         tstart = datetime.now()
 
@@ -902,11 +962,12 @@ class InterfaceAPI(Resource):
             port_mapping[index] = value
             logger.trace('fn=InterfaceAPI/get_poe : %s : port-mapping : ent-idx=%s, port-name=%s' %
                          (devicename, index, port_mapping[index]))
-        logger.trace('loop over entPhysicalName.iteritems done, %s entries found' % counter)
-
+        logger.trace(
+            'loop over entPhysicalName.iteritems done, %s entries found' % counter)
 
         # then, get the poe info. Returned entries are indexed by the port-name
-        logger.debug('fn=InterfaceAPI/get_poe : %s : get poe info' % (devicename))
+        logger.debug('fn=InterfaceAPI/get_poe : %s : get poe info' %
+                     (devicename))
         poe = {}
         # some switches cannot do any POE and answer with "End of MIB was reached"
         # and some clients might ask for POE for those even if the get-device API call
@@ -916,15 +977,18 @@ class InterfaceAPI(Resource):
             # new faster, bulkget-way of getting infos
             poe_parts = autovivification.AutoVivification()
 
-            logger.debug('fn=InterfaceAPI/get_poe : %s : get cpeExtPsePortPwrConsumption' % (devicename))
+            logger.debug(
+                'fn=InterfaceAPI/get_poe : %s : get cpeExtPsePortPwrConsumption' % (devicename))
             for index, value in m.cpeExtPsePortPwrConsumption.iteritems():
                 poe_parts[index]['cpeExtPsePortPwrConsumption'] = value
 
-            logger.debug('fn=InterfaceAPI/get_poe : %s : get pethPsePortDetectionStatus' % (devicename))
+            logger.debug(
+                'fn=InterfaceAPI/get_poe : %s : get pethPsePortDetectionStatus' % (devicename))
             for index, value in m.pethPsePortDetectionStatus.iteritems():
                 poe_parts[index]['pethPsePortDetectionStatus'] = value
 
-            logger.debug('fn=InterfaceAPI/get_poe : %s : get cpeExtPsePortEntPhyIndex' % (devicename))
+            logger.debug(
+                'fn=InterfaceAPI/get_poe : %s : get cpeExtPsePortEntPhyIndex' % (devicename))
             for index, value in m.cpeExtPsePortEntPhyIndex.iteritems():
                 poe_parts[index]['cpeExtPsePortEntPhyIndex'] = value
 
@@ -932,8 +996,10 @@ class InterfaceAPI(Resource):
             # re-merge with port_mapping collected above
             poe_parts_merged = autovivification.AutoVivification()
             for index in poe_parts:
-                poe_parts_merged[poe_parts[index]['cpeExtPsePortEntPhyIndex']]['Consumption'] = poe_parts[index]['cpeExtPsePortPwrConsumption']
-                poe_parts_merged[poe_parts[index]['cpeExtPsePortEntPhyIndex']]['Status'] = poe_parts[index]['pethPsePortDetectionStatus']
+                poe_parts_merged[poe_parts[index]['cpeExtPsePortEntPhyIndex']
+                                 ]['Consumption'] = poe_parts[index]['cpeExtPsePortPwrConsumption']
+                poe_parts_merged[poe_parts[index]['cpeExtPsePortEntPhyIndex']
+                                 ]['Status'] = poe_parts[index]['pethPsePortDetectionStatus']
 
             # and now the final merge
             poe_entries = 0
@@ -952,16 +1018,19 @@ class InterfaceAPI(Resource):
                 poe[port_name] = {'status': status, 'power': consumption}
                 poe_entries += 1
 
-            logger.info('fn=InterfaceAPI/get_poe : %s : got %s poe entries' % (devicename, poe_entries))
+            logger.info('fn=InterfaceAPI/get_poe : %s : got %s poe entries' %
+                        (devicename, poe_entries))
 
         except Exception as e:
-            logger.info("fn=InterfaceAPI/get_poe : %s : could not get poe info, probably a device without POE. Status : %s" % (devicename, e))
+            logger.info(
+                "fn=InterfaceAPI/get_poe : %s : could not get poe info, probably a device without POE. Status : %s" % (devicename, e))
 
         tend = datetime.now()
         tdiff = tend - tstart
         duration = (tdiff.microseconds + (tdiff.seconds +
                                           tdiff.days * 24 * 3600) * 10 ** 6) / 1000
-        logger.info('fn=InterfaceAPI/get_poe : %s : POE collection duration=%s' % (devicename, duration))
+        logger.info('fn=InterfaceAPI/get_poe : %s : POE collection duration=%s' %
+                    (devicename, duration))
 
         return poe
 
@@ -972,61 +1041,73 @@ class InterfaceAPI(Resource):
         entries_entPhysicalClass = {}
         tstart = datetime.now()
         counter = 0
-        logger.info('fn=InterfaceAPI/collect_entities : %s : loop over entPhysicalClass' % devicename)
+        logger.info(
+            'fn=InterfaceAPI/collect_entities : %s : loop over entPhysicalClass' % devicename)
         for index, value in m.entPhysicalClass.iteritems():
-            logger.trace('fn=InterfaceAPI/collect_entities : %s : entPhysicalClass entry %s, %s' % (devicename, index, value))
+            logger.trace('fn=InterfaceAPI/collect_entities : %s : entPhysicalClass entry %s, %s' %
+                         (devicename, index, value))
             entries_entPhysicalClass[index] = value
             counter += 1
         tend = datetime.now()
         tdiff = tend - tstart
         duration = (tdiff.microseconds + (tdiff.seconds +
                                           tdiff.days * 24 * 3600) * 10 ** 6) / 1000
-        logger.info('fn=InterfaceAPI/collect_entities : %s : loop over entPhysicalClass done in %s, %s entries found' % (devicename, duration, counter))
+        logger.info('fn=InterfaceAPI/collect_entities : %s : loop over entPhysicalClass done in %s, %s entries found' %
+                    (devicename, duration, counter))
 
         # entPhysicalName
         entries_entPhysicalName = {}
         tstart = datetime.now()
         counter = 0
-        logger.info('fn=InterfaceAPI/collect_entities : %s : loop over entPhysicalName' % devicename)
+        logger.info(
+            'fn=InterfaceAPI/collect_entities : %s : loop over entPhysicalName' % devicename)
         for index, value in m.entPhysicalName.iteritems():
-            logger.trace('fn=InterfaceAPI/collect_entities : %s : entPhysicalName entry %s, %s' % (devicename, index, value))
+            logger.trace('fn=InterfaceAPI/collect_entities : %s : entPhysicalName entry %s, %s' %
+                         (devicename, index, value))
             entries_entPhysicalName[index] = value
             counter += 1
         tend = datetime.now()
         tdiff = tend - tstart
         duration = (tdiff.microseconds + (tdiff.seconds +
                                           tdiff.days * 24 * 3600) * 10 ** 6) / 1000
-        logger.info('fn=InterfaceAPI/collect_entities : %s : loop over entPhysicalName done in %s, %s entries found' % (devicename, duration, counter))
+        logger.info('fn=InterfaceAPI/collect_entities : %s : loop over entPhysicalName done in %s, %s entries found' %
+                    (devicename, duration, counter))
 
         # entPhysicalContainedIn
         entries_entPhysicalContainedIn = {}
         tstart = datetime.now()
         counter = 0
-        logger.info('fn=InterfaceAPI/collect_entities : %s : loop over entPhysicalContainedIn' % devicename)
+        logger.info(
+            'fn=InterfaceAPI/collect_entities : %s : loop over entPhysicalContainedIn' % devicename)
         for index, value in m.entPhysicalContainedIn.iteritems():
-            logger.trace('fn=InterfaceAPI/collect_entities : %s : entPhysicalContainedIn entry %s, %s' % (devicename, index, value))
+            logger.trace('fn=InterfaceAPI/collect_entities : %s : entPhysicalContainedIn entry %s, %s' %
+                         (devicename, index, value))
             entries_entPhysicalContainedIn[index] = value
             counter += 1
         tend = datetime.now()
         tdiff = tend - tstart
         duration = (tdiff.microseconds + (tdiff.seconds +
                                           tdiff.days * 24 * 3600) * 10 ** 6) / 1000
-        logger.info('fn=InterfaceAPI/collect_entities : %s : loop over entPhysicalContainedIn done in %s, %s entries found' % (devicename, duration, counter))
+        logger.info('fn=InterfaceAPI/collect_entities : %s : loop over entPhysicalContainedIn done in %s, %s entries found' %
+                    (devicename, duration, counter))
 
         # entPhysicalVendorType
         entries_entPhysicalVendorType = {}
         tstart = datetime.now()
         counter = 0
-        logger.info('fn=InterfaceAPI/collect_entities : %s : loop over entPhysicalVendorType' % devicename)
+        logger.info(
+            'fn=InterfaceAPI/collect_entities : %s : loop over entPhysicalVendorType' % devicename)
         for index, value in m.entPhysicalVendorType.iteritems():
-            logger.trace('fn=InterfaceAPI/collect_entities : %s : entPhysicalVendorType entry %s, %s' % (devicename, index, value))
+            logger.trace('fn=InterfaceAPI/collect_entities : %s : entPhysicalVendorType entry %s, %s' %
+                         (devicename, index, value))
             entries_entPhysicalVendorType[index] = value
             counter += 1
         tend = datetime.now()
         tdiff = tend - tstart
         duration = (tdiff.microseconds + (tdiff.seconds +
                                           tdiff.days * 24 * 3600) * 10 ** 6) / 1000
-        logger.info('fn=InterfaceAPI/collect_entities : %s : loop over entPhysicalVendorType done in %s, %s entries found' % (devicename, duration, counter))
+        logger.info('fn=InterfaceAPI/collect_entities : %s : loop over entPhysicalVendorType done in %s, %s entries found' %
+                    (devicename, duration, counter))
 
         return ({'entries_entPhysicalClass': entries_entPhysicalClass,
                  'entries_entPhysicalName': entries_entPhysicalName,
@@ -1041,17 +1122,23 @@ class InterfaceAPI(Resource):
         # - if something is not in class table --> it will be ignored by this loop
         # - if something is in class table but has no name or cin --> None
 
-        logger.info('fn=InterfaceAPI/merge_entities : %s : start merge entities' % devicename)
+        logger.info(
+            'fn=InterfaceAPI/merge_entities : %s : start merge entities' % devicename)
 
         merged_entities = autovivification.AutoVivification()
         for idx, value in entities['entries_entPhysicalClass'].items():
-            logger.trace('fn=InterfaceAPI/merge_entities : %s : merging index %s of class %s' % (devicename, idx, value))
+            logger.trace(
+                'fn=InterfaceAPI/merge_entities : %s : merging index %s of class %s' % (devicename, idx, value))
             merged_entities[idx]['class'] = value
-            merged_entities[idx]['name'] = entities['entries_entPhysicalName'].get(idx, None)
-            merged_entities[idx]['cin'] = entities['entries_entPhysicalContainedIn'].get(idx, None)
-            merged_entities[idx]['vendtype'] = entities['entries_entPhysicalVendorType'].get(idx, None)
+            merged_entities[idx]['name'] = entities['entries_entPhysicalName'].get(
+                idx, None)
+            merged_entities[idx]['cin'] = entities['entries_entPhysicalContainedIn'].get(
+                idx, None)
+            merged_entities[idx]['vendtype'] = entities['entries_entPhysicalVendorType'].get(
+                idx, None)
 
-        logger.trace('fn=InterfaceAPI/merge_entities : %s : done merging entities' % devicename)
+        logger.trace(
+            'fn=InterfaceAPI/merge_entities : %s : done merging entities' % devicename)
 
         return merged_entities
 
@@ -1067,20 +1154,27 @@ class InterfaceAPI(Resource):
         port_table = autovivification.AutoVivification()
         for idx, entry in merged_entities.items():
             # only ports
-            if entry['class'] == 10:  # entPhysicalClass=10 are ports (interfaces of some sort)
-                logger.trace('fn=InterfaceAPI/get_ports : %s : searching for port %s' % (devicename, entry['name']))
+            # entPhysicalClass=10 are ports (interfaces of some sort)
+            if entry['class'] == 10:
+                logger.trace(
+                    'fn=InterfaceAPI/get_ports : %s : searching for port %s' % (devicename, entry['name']))
                 # entPhysicalClass=3 are chassis
-                chassis_idx = self.find_parent_of_type(devicename, idx, 3, merged_entities)
+                chassis_idx = self.find_parent_of_type(
+                    devicename, idx, 3, merged_entities)
                 port_table[entry['name']]['chassis'] = chassis_idx
-                logger.trace('fn=InterfaceAPI/get_ports : %s : port %s is part of chassis %s' % (devicename, entry['name'], chassis_idx))
+                logger.trace('fn=InterfaceAPI/get_ports : %s : port %s is part of chassis %s' %
+                             (devicename, entry['name'], chassis_idx))
 
                 # vendortype of port
                 vendor_type_oid = str(entry['vendtype'])
-                vendor_type_name = entityvendortypeoidmap.translate_oid(vendor_type_oid)
+                vendor_type_name = entityvendortypeoidmap.translate_oid(
+                    vendor_type_oid)
                 port_table[entry['name']]['vendtypename'] = vendor_type_name
-                logger.debug('fn=InterfaceAPI/get_ports : %s : port %s has vendor-type %s (%s)' % (devicename, entry['name'], vendor_type_oid, vendor_type_name))
+                logger.debug('fn=InterfaceAPI/get_ports : %s : port %s has vendor-type %s (%s)' %
+                             (devicename, entry['name'], vendor_type_oid, vendor_type_name))
 
-        logger.trace('fn=InterfaceAPI/get_ports : %s : done get_ports' % devicename)
+        logger.trace(
+            'fn=InterfaceAPI/get_ports : %s : done get_ports' % devicename)
         return port_table
 
     # -----------------------------------------------------------------------------------
@@ -1089,24 +1183,29 @@ class InterfaceAPI(Resource):
         # this is a recursive function walking up the entity tree to find
         # the first ancestor of desired type
 
-        logger.trace('fn=InterfaceAPI/find_parent_of_type : %s : find_parent_of_type %s for entity %s' % (devicename, searched_parent_type, port_idx))
+        logger.trace('fn=InterfaceAPI/find_parent_of_type : %s : find_parent_of_type %s for entity %s' %
+                     (devicename, searched_parent_type, port_idx))
 
         parent_idx = merged_entities[port_idx]['cin']
-        logger.trace('fn=InterfaceAPI/find_parent_of_type : %s : parent of port %s is %s' % (devicename, port_idx, parent_idx))
+        logger.trace('fn=InterfaceAPI/find_parent_of_type : %s : parent of port %s is %s' %
+                     (devicename, port_idx, parent_idx))
         # some switches produces interfaces not contained in a chassis, so this recursive check bombs
         # Interrupt this bomb when the parent is zero. In MIB, "entPhysicalContainedIn" = 0 is described as
         # "this physical entity is not contained in any other physical entity"
         if parent_idx == 0:
-            logger.info('fn=InterfaceAPI/find_parent_of_type : %s : parent of port %s is zero, search stopped' % (devicename, port_idx))
+            logger.info(
+                'fn=InterfaceAPI/find_parent_of_type : %s : parent of port %s is zero, search stopped' % (devicename, port_idx))
             return parent_idx
 
         type_of_parent = merged_entities[parent_idx]['class']
-        logger.trace('fn=InterfaceAPI/find_parent_of_type : %s : type of parent %s is %s' % (devicename, parent_idx, type_of_parent))
+        logger.trace('fn=InterfaceAPI/find_parent_of_type : %s : type of parent %s is %s' %
+                     (devicename, parent_idx, type_of_parent))
 
         # is the parent already the desired type ?
         if type_of_parent == searched_parent_type:
             # yes !
-            logger.trace('fn=InterfaceAPI/find_parent_of_type : %s : parent %s has the searched type %s, search done' % (devicename, parent_idx, searched_parent_type))
+            logger.trace('fn=InterfaceAPI/find_parent_of_type : %s : parent %s has the searched type %s, search done' %
+                         (devicename, parent_idx, searched_parent_type))
             return parent_idx
         else:
             # no, go deeper
@@ -1136,7 +1235,8 @@ class InterfaceCounterAPI(Resource):
 
         tstart = datetime.now()
 
-        logger.debug('fn=InterfaceCounterAPI/get : %s : requesting a SNMP manager' % (devicename))
+        logger.debug(
+            'fn=InterfaceCounterAPI/get : %s : requesting a SNMP manager' % (devicename))
         m, errors = snimpy.create(devicename=devicename, cache=False)
 
         if m is None:
@@ -1202,14 +1302,16 @@ class MacAPI(Resource):
 
     @auth.login_required
     def get(self, devicename):
-        #-------------------------
-        logger.debug('fn=MacAPI/get : src=%s, %s' % (request.remote_addr, devicename))
+        # -------------------------
+        logger.debug('fn=MacAPI/get : src=%s, %s' %
+                     (request.remote_addr, devicename))
         logaction(classname='MacAPI', methodname='get', devicename=devicename,
                   src_ip=request.remote_addr, src_user=auth.username())
 
         tstart = datetime.now()
 
-        logger.debug('fn=MacAPI/get : %s : requesting a SNMP manager' % (devicename))
+        logger.debug(
+            'fn=MacAPI/get : %s : requesting a SNMP manager' % (devicename))
         m, errors = snimpy.create(devicename=devicename)
 
         if m is None:
@@ -1250,13 +1352,14 @@ class MacAPI(Resource):
         deviceinfo['macs'] = macs_organized
         return deviceinfo
 
-
     # we create a dict indexed by ifIndex,
     # it's then easier when having to enrich an interface info when knowing the ifIndex
+
     def get_macs_from_device(self, devicename, m):
         # see http://www.cisco.com/c/en/us/support/docs/ip/simple-network-management-protocol-snmp/44800-mactoport44800.html
 
-        logger.debug('fn=MacAPI/get_macs_from_device : %s : get vlan list' % devicename)
+        logger.debug(
+            'fn=MacAPI/get_macs_from_device : %s : get vlan list' % devicename)
         vlans = autovivification.AutoVivification()
         # names
         for index, value in m.vtpVlanName.iteritems():
@@ -1271,7 +1374,8 @@ class MacAPI(Resource):
             managementDomainIndex, vtpVlanIndex = index
             vlans[vtpVlanIndex]['state'] = str(value)
         vlan_numbers = len(vlans)
-        logger.debug('fn=MacAPI/get_macs_from_device : %s : got %s vlans' % (devicename, vlan_numbers))
+        logger.debug('fn=MacAPI/get_macs_from_device : %s : got %s vlans' %
+                     (devicename, vlan_numbers))
 
         # now loop across every VLAN
         macs = {}
@@ -1284,17 +1388,21 @@ class MacAPI(Resource):
             vlan_state = vlans[vlan_nr]['state']
             vlan_name = vlans[vlan_nr]['name']
             vlan_counter += 1
-            logger.debug('fn=MacAPI/get_macs_from_device : %s : checking vlan_nr = %s (%s of %s), name = %s, type = %s, state = %s' % (devicename, vlan_nr, vlan_counter, vlan_numbers, vlan_name, vlan_type, vlan_state))
+            logger.debug('fn=MacAPI/get_macs_from_device : %s : checking vlan_nr = %s (%s of %s), name = %s, type = %s, state = %s' %
+                         (devicename, vlan_nr, vlan_counter, vlan_numbers, vlan_name, vlan_type, vlan_state))
 
             # only ethernet VLANs
             if vlan_type == 'ethernet(1)' and vlan_state == 'operational(1)':
-                logger.debug('fn=MacAPI/get_macs_from_device : %s : polling vlan %s (%s)' % (devicename, vlan_nr, vlan_name))
+                logger.debug('fn=MacAPI/get_macs_from_device : %s : polling vlan %s (%s)' %
+                             (devicename, vlan_nr, vlan_name))
 
                 # VLAN-based community, have a local manager for each VLAN
                 # this works probably only for Cisco, where it is called "community string indexing"
                 # http://www.cisco.com/c/en/us/support/docs/ip/simple-network-management-protocol-snmp/40367-camsnmp40367.html
-                logger.debug('fn=MacAPI/get_macs_from_device : %s : requesting a SNMP manager' % (devicename))
-                lm, errors = snimpy.create(devicename=devicename, community_format='{}@%s' % vlan_nr)
+                logger.debug(
+                    'fn=MacAPI/get_macs_from_device : %s : requesting a SNMP manager' % (devicename))
+                lm, errors = snimpy.create(
+                    devicename=devicename, community_format='{}@%s' % vlan_nr)
 
                 if lm is None:
                     return errst.status('ERROR_SNMP_MGR', errors), 200
@@ -1302,7 +1410,8 @@ class MacAPI(Resource):
                 # we pull them in an large block so we can catch timeouts for broken IOS versions
                 # happened on a big stack of 8 Cisco 3750 running 12.2(46)SE (fc2)
                 try:
-                    logger.debug('fn=MacAPI/get_macs_from_device : %s : trying to pull all mac_entries for vlan %s (%s)' % (devicename, vlan_nr, vlan_name))
+                    logger.debug('fn=MacAPI/get_macs_from_device : %s : trying to pull all mac_entries for vlan %s (%s)' %
+                                 (devicename, vlan_nr, vlan_name))
 
                     dot1dTpFdbAddress = {}
                     dot1dTpFdbPort = {}
@@ -1311,56 +1420,70 @@ class MacAPI(Resource):
                     for index, mac_entry in lm.dot1dTpFdbAddress.iteritems():
                         dot1dTpFdbAddress[index] = mac_entry
                         mac_entries += 1
-                    logger.debug('fn=MacAPI/get_macs_from_device : %s : got %s dot1dTpFdbAddress entries for vlan %s (%s)' % (devicename, len(dot1dTpFdbAddress), vlan_nr, vlan_name))
+                    logger.debug('fn=MacAPI/get_macs_from_device : %s : got %s dot1dTpFdbAddress entries for vlan %s (%s)' %
+                                 (devicename, len(dot1dTpFdbAddress), vlan_nr, vlan_name))
                     if mac_entries > 0:
                         # vlan is interesting, it has at least 1 MAC
                         for index, port in lm.dot1dTpFdbPort.iteritems():
                             dot1dTpFdbPort[index] = port
-                        logger.debug('fn=MacAPI/get_macs_from_device : %s : got %s dot1dTpFdbPort entries for vlan %s (%s)' % (devicename, len(dot1dTpFdbPort), vlan_nr, vlan_name))
+                        logger.debug('fn=MacAPI/get_macs_from_device : %s : got %s dot1dTpFdbPort entries for vlan %s (%s)' % (
+                            devicename, len(dot1dTpFdbPort), vlan_nr, vlan_name))
 
                         for index, ifindex in lm.dot1dBasePortIfIndex.iteritems():
                             dot1dBasePortIfIndex[index] = ifindex
-                        logger.debug('fn=MacAPI/get_macs_from_device : %s : got %s dot1dBasePortIfIndex entries for vlan %s (%s)' % (devicename, len(dot1dBasePortIfIndex), vlan_nr, vlan_name))
+                        logger.debug('fn=MacAPI/get_macs_from_device : %s : got %s dot1dBasePortIfIndex entries for vlan %s (%s)' % (
+                            devicename, len(dot1dBasePortIfIndex), vlan_nr, vlan_name))
 
-                        logger.debug('fn=MacAPI/get_macs_from_device : %s : enrich MAC table for vlan %s (%s)' % (devicename, vlan_nr, vlan_name))
+                        logger.debug('fn=MacAPI/get_macs_from_device : %s : enrich MAC table for vlan %s (%s)' % (
+                            devicename, vlan_nr, vlan_name))
                         for mac_entry in dot1dTpFdbAddress:
                             port = dot1dTpFdbPort[mac_entry]
                             if port == None:
-                                logger.debug("fn=MacAPI/get_macs_from_device : %s vlan %s : skip port=None" % (devicename, vlan_nr))
+                                logger.debug(
+                                    "fn=MacAPI/get_macs_from_device : %s vlan %s : skip port=None" % (devicename, vlan_nr))
                                 continue
 
                             try:
                                 ifindex = dot1dBasePortIfIndex[port]
                             except Exception as e:
-                                logger.debug("fn=MacAPI/get_macs_from_device : %s : port=%s, mac_entry_idx lookup failed : %s" % (devicename, port, e))
+                                logger.debug(
+                                    "fn=MacAPI/get_macs_from_device : %s : port=%s, mac_entry_idx lookup failed : %s" % (devicename, port, e))
 
                             try:
                                 mac = netaddr.EUI(mac_entry)
                                 vendor = mac.oui.registration().org
                             except Exception as e:
-                                logger.trace("fn=MacAPI/get_macs_from_device : %s : vendor lookup failed : %s" % (devicename, e))
+                                logger.trace(
+                                    "fn=MacAPI/get_macs_from_device : %s : vendor lookup failed : %s" % (devicename, e))
                                 vendor = 'unknown'
 
-                            logger.trace("idx=%s, vlan=%s, mac=%s, vendor=%s" % (ifindex, vlan_nr, str(mac), vendor))
-                            mac_record = {'mac': str(mac), 'vendor': vendor, 'vlan': vlan_nr}
+                            logger.trace("idx=%s, vlan=%s, mac=%s, vendor=%s" % (
+                                ifindex, vlan_nr, str(mac), vendor))
+                            mac_record = {'mac': str(
+                                mac), 'vendor': vendor, 'vlan': vlan_nr}
                             if ifindex in macs:
                                 macs[ifindex].append(mac_record)
                             else:
                                 macs[ifindex] = [mac_record]
 
                     else:
-                        logger.debug('fn=MacAPI/get_macs_from_device : %s : vlan %s (%s) skipped, no MAC found on it' % (devicename, vlan_nr, vlan_name))
+                        logger.debug('fn=MacAPI/get_macs_from_device : %s : vlan %s (%s) skipped, no MAC found on it' % (
+                            devicename, vlan_nr, vlan_name))
 
                 except:
-                    logger.info("fn=MacAPI/get_macs_from_device : %s : failed, probably an unused VLAN (%s) on a buggy IOS producing SNMP timeout. Ignoring this VLAN" % (devicename, vlan_nr))
+                    logger.info(
+                        "fn=MacAPI/get_macs_from_device : %s : failed, probably an unused VLAN (%s) on a buggy IOS producing SNMP timeout. Ignoring this VLAN" % (devicename, vlan_nr))
 
             else:
-                logger.debug('fn=MacAPI/get_macs_from_device : %s : skipping vlan %s (%s)' % (devicename, vlan_nr, vlan_name))
+                logger.debug('fn=MacAPI/get_macs_from_device : %s : skipping vlan %s (%s)' %
+                             (devicename, vlan_nr, vlan_name))
 
-            logger.debug("fn=MacAPI/get_macs_from_device : %s : %s mac entries found in vlan %s (%s)" % (devicename, mac_entries, vlan_nr, vlan_name))
+            logger.debug("fn=MacAPI/get_macs_from_device : %s : %s mac entries found in vlan %s (%s)" %
+                         (devicename, mac_entries, vlan_nr, vlan_name))
             total_mac_entries += mac_entries
 
-        logger.debug("fn=MacAPI/get_macs_from_device : %s : returning data, total %s mac entries found" % (devicename, total_mac_entries))
+        logger.debug("fn=MacAPI/get_macs_from_device : %s : returning data, total %s mac entries found" %
+                     (devicename, total_mac_entries))
         return macs, total_mac_entries
 
 
@@ -1377,15 +1500,16 @@ class CDPAPI(Resource):
         "returns": "A list of info indexed by ifIndex."
     }'''
 
-
     def get(self, devicename):
-        logger.debug('fn=CDPAPI/get : src=%s, %s' % (request.remote_addr, devicename))
+        logger.debug('fn=CDPAPI/get : src=%s, %s' %
+                     (request.remote_addr, devicename))
         logaction(classname='CDPAPI', methodname='get', devicename=devicename,
                   src_ip=request.remote_addr, src_user=auth.username())
 
         tstart = datetime.now()
 
-        logger.debug('fn=CDPAPI/get : %s : requesting a SNMP manager' % (devicename))
+        logger.debug(
+            'fn=CDPAPI/get : %s : requesting a SNMP manager' % (devicename))
         m, errors = snimpy.create(devicename=devicename)
 
         if m is None:
@@ -1410,7 +1534,8 @@ class CDPAPI(Resource):
 
                 address_type = cdps[ifindex]['cdpCacheAddressType']
                 if address_type in ('ipv4', 'ipv6'):
-                    entry["cdpCacheAddress"] = util.convert_ip_from_snmp_format(address_type, cdps[ifindex]['cdpCacheAddress'])
+                    entry["cdpCacheAddress"] = util.convert_ip_from_snmp_format(
+                        address_type, cdps[ifindex]['cdpCacheAddress'])
                 else:
                     entry["cdpCacheAddress"] = 'cannot convert SNMP value for address, unsupported type %s' % address_type
 
@@ -1422,7 +1547,8 @@ class CDPAPI(Resource):
                 cdps_organized.append(entry)
 
         except snmp.SNMPException as e:
-            logger.error("fn=CDPAPI/get : %s : SNMP get failed : %s" % (devicename, e))
+            logger.error("fn=CDPAPI/get : %s : SNMP get failed : %s" %
+                         (devicename, e))
             return errst.status('ERROR_OP', 'SNMP get failed on %s, cause : %s' % (devicename, e)), 200
 
         tend = datetime.now()
@@ -1443,7 +1569,8 @@ class CDPAPI(Resource):
 
         cdps = autovivification.AutoVivification()
         try:
-            logger.debug('fn=CDPAPI/get_cdp_from_device : %s : get cdpCacheAddressType' % devicename)
+            logger.debug(
+                'fn=CDPAPI/get_cdp_from_device : %s : get cdpCacheAddressType' % devicename)
             for index, value in m.cdpCacheAddressType.iteritems():
                 # map to standard values so we can then translate it with our util function
                 # hope it will work with IPv6, no way to test at development time
@@ -1453,34 +1580,42 @@ class CDPAPI(Resource):
                     cdps[index[0]]['cdpCacheAddressType'] = 'ipv6'
                 else:
                     cdps[index[0]]['cdpCacheAddressType'] = 'unsupported' % value
-                    logger.warning('fn=CDPAPI/get_cdp_from_device : %s : unsupported cdpCacheAddressType <%s>' % (devicename, value))
+                    logger.warning(
+                        'fn=CDPAPI/get_cdp_from_device : %s : unsupported cdpCacheAddressType <%s>' % (devicename, value))
 
-            logger.debug('fn=CDPAPI/get_cdp_from_device : %s : get cdpCacheAddress' % devicename)
+            logger.debug(
+                'fn=CDPAPI/get_cdp_from_device : %s : get cdpCacheAddress' % devicename)
             for index, value in m.cdpCacheAddress.iteritems():
                 cdps[index[0]]['cdpCacheAddress'] = value
 
-            logger.debug('fn=CDPAPI/get_cdp_from_device : %s : get cdpCacheVersion' % devicename)
+            logger.debug(
+                'fn=CDPAPI/get_cdp_from_device : %s : get cdpCacheVersion' % devicename)
             for index, value in m.cdpCacheVersion.iteritems():
                 cdps[index[0]]['cdpCacheVersion'] = value
 
-            logger.debug('fn=CDPAPI/get_cdp_from_device : %s : get cdpCacheDeviceId' % devicename)
+            logger.debug(
+                'fn=CDPAPI/get_cdp_from_device : %s : get cdpCacheDeviceId' % devicename)
             for index, value in m.cdpCacheDeviceId.iteritems():
                 cdps[index[0]]['cdpCacheDeviceId'] = value
 
-            logger.debug('fn=CDPAPI/get_cdp_from_device : %s : get cdpCacheDevicePort' % devicename)
+            logger.debug(
+                'fn=CDPAPI/get_cdp_from_device : %s : get cdpCacheDevicePort' % devicename)
             for index, value in m.cdpCacheDevicePort.iteritems():
                 cdps[index[0]]['cdpCacheDevicePort'] = value
 
-            logger.debug('fn=CDPAPI/get_cdp_from_device : %s : get cdpCachePlatform' % devicename)
+            logger.debug(
+                'fn=CDPAPI/get_cdp_from_device : %s : get cdpCachePlatform' % devicename)
             for index, value in m.cdpCachePlatform.iteritems():
                 cdps[index[0]]['cdpCachePlatform'] = value
 
-            logger.debug('fn=CDPAPI/get_cdp_from_device : %s : get cdpCacheLastChange' % devicename)
+            logger.debug(
+                'fn=CDPAPI/get_cdp_from_device : %s : get cdpCacheLastChange' % devicename)
             for index, value in m.cdpCacheLastChange.iteritems():
                 cdps[index[0]]['cdpCacheLastChange'] = value
 
         except snmp.SNMPException as e:
-            logger.warning("fn=CDPAPI/get_cdp_from_device : failed SNMP get for CDP : %s" % e)
+            logger.warning(
+                "fn=CDPAPI/get_cdp_from_device : failed SNMP get for CDP : %s" % e)
 
         return cdps
 
@@ -1500,14 +1635,16 @@ class TrunkAPI(Resource):
 
     @auth.login_required
     def get(self, devicename):
-        #-------------------------
-        logger.debug('fn=TrunkAPI/get : src=%s, %s' % (request.remote_addr, devicename))
+        # -------------------------
+        logger.debug('fn=TrunkAPI/get : src=%s, %s' %
+                     (request.remote_addr, devicename))
         logaction(classname='TrunkAPI', methodname='get', devicename=devicename,
                   src_ip=request.remote_addr, src_user=auth.username())
 
         tstart = datetime.now()
 
-        logger.debug('fn=TrunkAPI/get : %s : requesting a SNMP manager' % (devicename))
+        logger.debug(
+            'fn=TrunkAPI/get : %s : requesting a SNMP manager' % (devicename))
         m, errors = snimpy.create(devicename=devicename)
 
         if m is None:
@@ -1535,7 +1672,8 @@ class TrunkAPI(Resource):
                                           tdiff.days * 24 * 3600) * 10**6) / 1000
         deviceinfo['query-duration'] = duration
 
-        logger.info('fn=TrunkAPI/get : %s : duration=%s' % (devicename, duration))
+        logger.info('fn=TrunkAPI/get : %s : duration=%s' %
+                    (devicename, duration))
         deviceinfo['trunks'] = trunks
         return deviceinfo
 
@@ -1549,17 +1687,21 @@ class TrunkAPI(Resource):
         try:
 
             for index, value in m.vlanTrunkPortDynamicState.iteritems():
-                logger.trace("fn=TrunkAPI/get_trunks_from_device/1 : trunk : %s, %s" % (index, value))
+                logger.trace(
+                    "fn=TrunkAPI/get_trunks_from_device/1 : trunk : %s, %s" % (index, value))
                 trunks[index]['trunkAdminState'] = str(value)
 
             for index, value in m.vlanTrunkPortDynamicStatus.iteritems():
-                logger.trace("fn=TrunkAPI/get_trunks_from_device/2 : trunk : %s, %s" % (index, value))
+                logger.trace(
+                    "fn=TrunkAPI/get_trunks_from_device/2 : trunk : %s, %s" % (index, value))
                 trunks[index]['trunkOperState'] = str(value)
 
         except snmp.SNMPException as e:
-            logger.warning("fn=TrunkAPI/get_trunks_from_device : failed SNMP get for Trunks : %s" % e)
+            logger.warning(
+                "fn=TrunkAPI/get_trunks_from_device : failed SNMP get for Trunks : %s" % e)
 
-        logger.debug("fn=TrunkAPI/get_trunks_from_device : returning data : %s trunks entries found" % len(trunks))
+        logger.debug(
+            "fn=TrunkAPI/get_trunks_from_device : returning data : %s trunks entries found" % len(trunks))
         return trunks
 
 
@@ -1579,13 +1721,15 @@ class ARPAPI(Resource):
     @auth.login_required
     def get(self, devicename):
         # -------------------------
-        logger.debug('fn=ARPAPI/get : src=%s, %s' % (request.remote_addr, devicename))
+        logger.debug('fn=ARPAPI/get : src=%s, %s' %
+                     (request.remote_addr, devicename))
         logaction(classname='ARPAPI', methodname='get', devicename=devicename,
                   src_ip=request.remote_addr, src_user=auth.username())
 
         tstart = datetime.now()
 
-        logger.debug('fn=ARPAPI/get : %s : requesting a SNMP manager' % (devicename))
+        logger.debug(
+            'fn=ARPAPI/get : %s : requesting a SNMP manager' % (devicename))
         m, errors = snimpy.create(devicename=devicename)
 
         if m is None:
@@ -1599,10 +1743,12 @@ class ARPAPI(Resource):
 
         try:
             deviceinfo['sysName'] = m.sysName
-            oid_used, nbr_arp_entries, arps = self.get_arp_from_device(devicename, m)
+            oid_used, nbr_arp_entries, arps = self.get_arp_from_device(
+                devicename, m)
 
         except snmp.SNMPException as e:
-            logger.error("fn=ARPAPI/get : %s : SNMP get failed : %s" % (devicename, e))
+            logger.error("fn=ARPAPI/get : %s : SNMP get failed : %s" %
+                         (devicename, e))
             return errst.status('ERROR_OP', 'SNMP get failed on %s, cause : %s' % (devicename, e)), 200
 
         tend = datetime.now()
@@ -1611,7 +1757,8 @@ class ARPAPI(Resource):
                                           tdiff.days * 24 * 3600) * 10 ** 6) / 1000
         deviceinfo['query-duration'] = duration
 
-        logger.info('fn=ARPAPI/get : %s : duration=%s' % (devicename, duration))
+        logger.info('fn=ARPAPI/get : %s : duration=%s' %
+                    (devicename, duration))
         deviceinfo['arp'] = arps
         deviceinfo['arp_nbr_entries'] = nbr_arp_entries
         deviceinfo['oid_used'] = oid_used
@@ -1621,7 +1768,8 @@ class ARPAPI(Resource):
     def get_arp_from_device(self, devicename, m):
 
         nbr_of_entries = 0
-        logger.debug('fn=ARPAPI/get_arp_from_device : %s : trying current OID' % devicename)
+        logger.debug(
+            'fn=ARPAPI/get_arp_from_device : %s : trying current OID' % devicename)
         try:
             i = 0
             oid_used = 'ipNetToPhysicalPhysAddress (current)'
@@ -1631,29 +1779,35 @@ class ARPAPI(Resource):
                 entry = {}
                 entry['ifindex'] = ipNetToPhysicalIfIndex
                 entry['mac'] = str(netaddr.EUI(str(value)))
-                entry['ip'] = util.convert_ip_from_snmp_format(ipNetToPhysicalNetAddressType, ipNetToPhysicalNetAddress)
+                entry['ip'] = util.convert_ip_from_snmp_format(
+                    ipNetToPhysicalNetAddressType, ipNetToPhysicalNetAddress)
                 arps.append(entry)
                 i += 1
-                logger.trace("fn=ARPAPI/get_arp_from_device : %s : idx=%s, mac=%s, ip=%s" % (devicename, entry['ifindex'], entry['mac'], entry['ip']))
+                logger.trace("fn=ARPAPI/get_arp_from_device : %s : idx=%s, mac=%s, ip=%s" %
+                             (devicename, entry['ifindex'], entry['mac'], entry['ip']))
 
             nbr_of_entries = i
-            logger.info("fn=ARPAPI/get_arp_from_device : %s : got %s ARP entries" % (devicename, nbr_of_entries))
+            logger.info("fn=ARPAPI/get_arp_from_device : %s : got %s ARP entries" %
+                        (devicename, nbr_of_entries))
 
         except snmp.SNMPException as e:
             if str(e) == 'no more stuff after this OID':
-                logger.info('fn=ARPAPI/get_arp_from_device : %s : empty results, probably unsupported OID: %s' % (devicename, e))
+                logger.info(
+                    'fn=ARPAPI/get_arp_from_device : %s : empty results, probably unsupported OID: %s' % (devicename, e))
             else:
-                logger.warning('fn=ARPAPI/get_arp_from_device : %s : %s' % (devicename, e))
+                logger.warning(
+                    'fn=ARPAPI/get_arp_from_device : %s : %s' % (devicename, e))
 
         # success, do not try deprecated MIB/OID below
         if nbr_of_entries > 0:
             logger.debug(
                 "fn=ARPAPI/get_arp_from_device : %s : returning %s ARP entries gathered using %s" % (
-                devicename, nbr_of_entries, oid_used))
+                    devicename, nbr_of_entries, oid_used))
             return oid_used, nbr_of_entries, arps
 
         # continue with deprecated MIB/OID
-        logger.debug('fn=ARPAPI/get_arp_from_device %s retry using deprecated OID (ipNetToMediaPhysAddress)' % devicename)
+        logger.debug(
+            'fn=ARPAPI/get_arp_from_device %s retry using deprecated OID (ipNetToMediaPhysAddress)' % devicename)
         try:
             i = 0
             oid_used = 'ipNetToMediaPhysAddress (deprecated)'
@@ -1661,24 +1815,28 @@ class ARPAPI(Resource):
                 ipNetToMediaIfIndex, ipNetToMediaNetAddress = index
                 entry = {}
                 entry['ifindex'] = ipNetToMediaIfIndex
-                entry['mac'] = str(netaddr.EUI(netaddr.strategy.eui48.packed_to_int(value)))
+                entry['mac'] = str(netaddr.EUI(
+                    netaddr.strategy.eui48.packed_to_int(value)))
                 entry['ip'] = str(ipNetToMediaNetAddress)
                 arps.append(entry)
                 i += 1
-                logger.trace("fn=ARPAPI/get_arp_from_device : %s : idx=%s, mac=%s, ip=%s" % (devicename, entry['ifindex'], entry['mac'], entry['ip']))
+                logger.trace("fn=ARPAPI/get_arp_from_device : %s : idx=%s, mac=%s, ip=%s" %
+                             (devicename, entry['ifindex'], entry['mac'], entry['ip']))
 
             nbr_of_entries = i
-            logger.info("fn=ARPAPI/get_arp_from_device : %s : got %s ARP entries" % (devicename, nbr_of_entries))
+            logger.info("fn=ARPAPI/get_arp_from_device : %s : got %s ARP entries" %
+                        (devicename, nbr_of_entries))
 
         except snmp.SNMPException as e:
-            logger.warning('fn=ARPAPI/get_arp_from_device : %s : %s' % (devicename, e))
+            logger.warning(
+                'fn=ARPAPI/get_arp_from_device : %s : %s' % (devicename, e))
 
         # possible enhancement: if both ipNetToPhysicalPhysAddress and ipNetToMediaPhysAddress
         # bring empty results, 1.3.6.1.2.1.3.1 (RFC1213-MIB) might do the job.
 
         logger.debug(
             "fn=ARPAPI/get_arp_from_device : %s : returning %s ARP entries gathered using %s" % (
-            devicename, nbr_of_entries, oid_used))
+                devicename, nbr_of_entries, oid_used))
         return oid_used, nbr_of_entries, arps
 
 
@@ -1697,13 +1855,15 @@ class DHCPsnoopAPI(Resource):
 
     @auth.login_required
     def get(self, devicename):
-        logger.debug('fn=DHCPsnoopAPI/get : src=%s, %s' % (request.remote_addr, devicename))
+        logger.debug('fn=DHCPsnoopAPI/get : src=%s, %s' %
+                     (request.remote_addr, devicename))
         logaction(classname='DHCPsnoopAPI', methodname='get', devicename=devicename,
                   src_ip=request.remote_addr, src_user=auth.username())
 
         tstart = datetime.now()
 
-        logger.debug('fn=DHCPsnoopAPI/get : %s : requesting a SNMP manager' % (devicename))
+        logger.debug(
+            'fn=DHCPsnoopAPI/get : %s : requesting a SNMP manager' % (devicename))
         m, errors = snimpy.create(devicename=devicename)
 
         if m is None:
@@ -1717,7 +1877,8 @@ class DHCPsnoopAPI(Resource):
 
         try:
             deviceinfo['sysName'] = m.sysName
-            deviceinfo['dhcpsnoop'] = self.get_dhcp_snooping_from_device(devicename, m)
+            deviceinfo['dhcpsnoop'] = self.get_dhcp_snooping_from_device(
+                devicename, m)
 
         except snmp.SNMPException as e:
             logger.error(
@@ -1756,44 +1917,57 @@ class DHCPsnoopAPI(Resource):
             6: 'destroy'
         }
 
-        logger.debug('fn=DHCPsnoopAPI/get_dhcp_snooping_from_device : %s' % devicename)
+        logger.debug(
+            'fn=DHCPsnoopAPI/get_dhcp_snooping_from_device : %s' % devicename)
         try:
 
-            logger.debug('fn=DHCPsnoopAPI/get_dhcp_snooping_from_device : %s : get cdsBindingsAddrType' % devicename)
+            logger.debug(
+                'fn=DHCPsnoopAPI/get_dhcp_snooping_from_device : %s : get cdsBindingsAddrType' % devicename)
             cdsBindingsAddrType = {}
             for index, value in m.cdsBindingsAddrType.items():
                 cdsBindingsAddrType[index] = value
-            logger.trace('fn=DHCPsnoopAPI/get_dhcp_snooping_from_device : %s : got %s entries' % (devicename, len(cdsBindingsAddrType)))
+            logger.trace('fn=DHCPsnoopAPI/get_dhcp_snooping_from_device : %s : got %s entries' %
+                         (devicename, len(cdsBindingsAddrType)))
 
-            logger.debug('fn=DHCPsnoopAPI/get_dhcp_snooping_from_device : %s : get cdsBindingsIpAddress' % devicename)
+            logger.debug(
+                'fn=DHCPsnoopAPI/get_dhcp_snooping_from_device : %s : get cdsBindingsIpAddress' % devicename)
             cdsBindingsIpAddress = {}
             for index, value in m.cdsBindingsIpAddress.iteritems():
                 cdsBindingsIpAddress[index] = value
-            logger.trace('fn=DHCPsnoopAPI/get_dhcp_snooping_from_device : %s : got %s entries' % (devicename, len(cdsBindingsIpAddress)))
+            logger.trace('fn=DHCPsnoopAPI/get_dhcp_snooping_from_device : %s : got %s entries' %
+                         (devicename, len(cdsBindingsIpAddress)))
 
-            logger.debug('fn=DHCPsnoopAPI/get_dhcp_snooping_from_device : %s : get cdsBindingsInterface' % devicename)
+            logger.debug(
+                'fn=DHCPsnoopAPI/get_dhcp_snooping_from_device : %s : get cdsBindingsInterface' % devicename)
             cdsBindingsInterface = {}
             for index, value in m.cdsBindingsInterface.iteritems():
                 cdsBindingsInterface[index] = value
-            logger.trace('fn=DHCPsnoopAPI/get_dhcp_snooping_from_device : %s : got %s entries' % (devicename, len(cdsBindingsInterface)))
+            logger.trace('fn=DHCPsnoopAPI/get_dhcp_snooping_from_device : %s : got %s entries' %
+                         (devicename, len(cdsBindingsInterface)))
 
-            logger.debug('fn=DHCPsnoopAPI/get_dhcp_snooping_from_device : %s : get cdsBindingsLeasedTime' % devicename)
+            logger.debug(
+                'fn=DHCPsnoopAPI/get_dhcp_snooping_from_device : %s : get cdsBindingsLeasedTime' % devicename)
             cdsBindingsLeasedTime = {}
             for index, value in m.cdsBindingsLeasedTime.iteritems():
                 cdsBindingsLeasedTime[index] = value
-            logger.trace('fn=DHCPsnoopAPI/get_dhcp_snooping_from_device : %s : got %s entries' % (devicename, len(cdsBindingsLeasedTime)))
+            logger.trace('fn=DHCPsnoopAPI/get_dhcp_snooping_from_device : %s : got %s entries' %
+                         (devicename, len(cdsBindingsLeasedTime)))
 
-            logger.debug('fn=DHCPsnoopAPI/get_dhcp_snooping_from_device : %s : get cdsBindingsStatus' % devicename)
+            logger.debug(
+                'fn=DHCPsnoopAPI/get_dhcp_snooping_from_device : %s : get cdsBindingsStatus' % devicename)
             cdsBindingsStatus = {}
             for index, value in m.cdsBindingsStatus.iteritems():
                 cdsBindingsStatus[index] = value
-            logger.trace('fn=DHCPsnoopAPI/get_dhcp_snooping_from_device : %s : got %s entries' % (devicename, len(cdsBindingsStatus)))
+            logger.trace('fn=DHCPsnoopAPI/get_dhcp_snooping_from_device : %s : got %s entries' %
+                         (devicename, len(cdsBindingsStatus)))
 
-            logger.debug('fn=DHCPsnoopAPI/get_dhcp_snooping_from_device : %s : get cdsBindingsHostname' % devicename)
+            logger.debug(
+                'fn=DHCPsnoopAPI/get_dhcp_snooping_from_device : %s : get cdsBindingsHostname' % devicename)
             cdsBindingsHostname = {}
             for index, value in m.cdsBindingsHostname.iteritems():
                 cdsBindingsHostname[index] = value
-            logger.trace('fn=DHCPsnoopAPI/get_dhcp_snooping_from_device : %s : got %s entries' % (devicename, len(cdsBindingsHostname)))
+            logger.trace('fn=DHCPsnoopAPI/get_dhcp_snooping_from_device : %s : got %s entries' %
+                         (devicename, len(cdsBindingsHostname)))
 
             # now loop over the entries and merge the diverse tables
             dhcp_snooping_entries = []
@@ -1808,13 +1982,17 @@ class DHCPsnoopAPI(Resource):
                 try:
                     vendor = mac_e.oui.registration().org
                 except netaddr.NotRegisteredError as e:
-                    logger.warning('fn=DHCPsnoopAPI/get_dhcp_snooping_from_device: %s : error %s : unknown vendor for %s' % (devicename, e, mac_f))
+                    logger.warning(
+                        'fn=DHCPsnoopAPI/get_dhcp_snooping_from_device: %s : error %s : unknown vendor for %s' % (devicename, e, mac_f))
                     vendor = 'unknown'
-                address_type = inet_address_types.get(int(cdsBindingsAddrType[index]), 'unsupported')
-                ip = util.convert_ip_from_snmp_format(address_type, cdsBindingsIpAddress[index])
+                address_type = inet_address_types.get(
+                    int(cdsBindingsAddrType[index]), 'unsupported')
+                ip = util.convert_ip_from_snmp_format(
+                    address_type, cdsBindingsIpAddress[index])
                 interface_idx = cdsBindingsInterface[index]
                 leased_time = cdsBindingsLeasedTime[index]
-                status = binding_status.get(int(cdsBindingsStatus[index]), 'unsupported')
+                status = binding_status.get(
+                    int(cdsBindingsStatus[index]), 'unsupported')
                 hostname = cdsBindingsHostname.get(index, None)
 
                 logger.trace('fn=DHCPsnoopAPI/get_dhcp_snooping_from_device %s : vlan=%s, mac=%s, vendor=%s, address_type=%s, ip=%s, interface_idx=%s, leased_time=%s, status=%s, hostname=%s' %
@@ -1832,9 +2010,11 @@ class DHCPsnoopAPI(Resource):
                 dhcp_snooping_entries.append(dhcp_entry)
 
         except snmp.SNMPException as e:
-            logger.warning("fn=DHCPsnoopAPI/get_dhcp_snooping_from_device : failed SNMP get for DHCP snooping : %s" % e)
+            logger.warning(
+                "fn=DHCPsnoopAPI/get_dhcp_snooping_from_device : failed SNMP get for DHCP snooping : %s" % e)
 
-        logger.debug("fn=DHCPsnoopAPI/get_dhcp_snooping_from_device : returning data : %s entries found" % len(dhcp_snooping_entries))
+        logger.debug("fn=DHCPsnoopAPI/get_dhcp_snooping_from_device : returning data : %s entries found" %
+                     len(dhcp_snooping_entries))
         return dhcp_snooping_entries
 
 
@@ -1854,13 +2034,15 @@ class vlanlistAPI(Resource):
     @auth.login_required
     def get(self, devicename):
 
-        logger.debug('fn=vlanlistAPI/get : src=%s, device=%s' % (request.remote_addr, devicename))
+        logger.debug('fn=vlanlistAPI/get : src=%s, device=%s' %
+                     (request.remote_addr, devicename))
         logaction(classname='vlanlistAPI', methodname='get', devicename=devicename,
                   src_ip=request.remote_addr, src_user=auth.username())
 
         tstart = datetime.now()
 
-        logger.debug('fn=vlanlistAPI/get : %s : requesting a SNMP manager' % (devicename))
+        logger.debug(
+            'fn=vlanlistAPI/get : %s : requesting a SNMP manager' % (devicename))
         m, errors = snimpy.create(devicename=devicename)
 
         if m is None:
@@ -1909,7 +2091,8 @@ class vlanlistAPI(Resource):
     def get_vlans(self, devicename, m):
         ''' return a VLAN dict indexed by vlan-nr '''
 
-        logger.debug('fn=vlanlistAPI/get_vlans : %s : get data vlan list' % devicename)
+        logger.debug(
+            'fn=vlanlistAPI/get_vlans : %s : get data vlan list' % devicename)
 
         vlans = autovivification.AutoVivification()
         # names
@@ -1927,22 +2110,24 @@ class vlanlistAPI(Resource):
 
         return vlans
 
-
     def get_voice_vlans(self, devicename, m):
         ''' return a VOICE_VLAN dict indexed by vlan-nr '''
 
-        logger.debug('fn=vlanlistAPI/get_voice_vlans : %s : get voice vlan list' % devicename)
+        logger.debug(
+            'fn=vlanlistAPI/get_voice_vlans : %s : get voice vlan list' % devicename)
         voice_vlans = {}
         # some routers (Cisco 1921) return empty list, producing an error upstream.
         # Catch it and return an empty list
         try:
 
             for index, value in m.vmVoiceVlanId.iteritems():
-                logger.trace('fn=vlanlistAPI/get_voice_vlans : %s : got voice vlan %s for index %s' % (devicename, value, index))
+                logger.trace(
+                    'fn=vlanlistAPI/get_voice_vlans : %s : got voice vlan %s for index %s' % (devicename, value, index))
                 voice_vlans[index] = str(value)
 
         except Exception as e:
-            logger.info("fn=vlanlistAPI/get_voice_vlans : %s : SNMP get failed : %s" % (devicename, e))
+            logger.info(
+                "fn=vlanlistAPI/get_voice_vlans : %s : SNMP get failed : %s" % (devicename, e))
 
         return voice_vlans
 
@@ -1986,7 +2171,8 @@ class PortToVlanAPI(Resource):
 
         tstart = datetime.now()
 
-        logger.debug('fn=PortToVlanAPI/put : %s : requesting a SNMP manager' % (devicename))
+        logger.debug(
+            'fn=PortToVlanAPI/put : %s : requesting a SNMP manager' % (devicename))
         m, errors = snimpy.create(devicename=devicename, rw=True)
 
         if m is None:
@@ -2062,7 +2248,8 @@ class InterfaceConfigAPI(Resource):
 
         tstart = datetime.now()
 
-        logger.debug('fn=InterfaceConfigAPI/put : %s : requesting a SNMP manager' % (devicename))
+        logger.debug(
+            'fn=InterfaceConfigAPI/put : %s : requesting a SNMP manager' % (devicename))
         m, errors = snimpy.create(devicename=devicename, rw=True)
 
         if m is None:
@@ -2125,7 +2312,8 @@ class OIDpumpAPI(Resource):
         # but it keeps the code tidy and orthogonal. Besides, it will work for SNMPv3 as well.
         # recommended method by the developer of snimpy.
         # https://github.com/vincentbernat/snimpy/issues/62
-        logger.debug('fn=OIDpumpAPI/get : %s : requesting a SNMP manager' % (devicename))
+        logger.debug(
+            'fn=OIDpumpAPI/get : %s : requesting a SNMP manager' % (devicename))
         m, errors = snimpy.create(devicename=devicename, bulk=False, cache=0)
         if m is None:
             return errst.status('ERROR_SNMP_MGR', errors), 200
@@ -2138,18 +2326,22 @@ class OIDpumpAPI(Resource):
 
         if pdu == 'get':
             try:
-                logger.debug('fn=OIDpumpAPI/get : %s : SNMP get on %s' % (devicename, oid))
+                logger.debug('fn=OIDpumpAPI/get : %s : SNMP get on %s' %
+                             (devicename, oid))
                 data = session.get(str(oid))
             except Exception as e:
-                logger.error("fn=OIDpumpAPI/get : %s : oid get failed: %s" % (devicename, e))
+                logger.error(
+                    "fn=OIDpumpAPI/get : %s : oid get failed: %s" % (devicename, e))
                 return errst.status('ERROR_SNMP_OP', 'oid get failed: %s' % e), 200
 
         elif pdu == 'walk':
             try:
-                logger.debug('fn=OIDpumpAPI/get : %s : SNMP walk on %s' % (devicename, oid))
+                logger.debug(
+                    'fn=OIDpumpAPI/get : %s : SNMP walk on %s' % (devicename, oid))
                 data = session.walkmore(str(oid))
             except Exception as e:
-                logger.error("fn=OIDpumpAPI/get : %s : oid walk failed: %s" % (devicename, e))
+                logger.error(
+                    "fn=OIDpumpAPI/get : %s : oid walk failed: %s" % (devicename, e))
                 return errst.status('ERROR_SNMP_OP', 'oid walk failed: %s' % e), 200
 
         else:
@@ -2172,7 +2364,8 @@ class OIDpumpAPI(Resource):
                 try:
                     value = binascii.hexlify(entry[1]).decode('utf-8')
                 except Exception as e:
-                    logger.warning("fn=OIDpumpAPI/get : %s : %s %s : bytes decoding failed : %s" % (devicename, pdu, oid, e))
+                    logger.warning(
+                        "fn=OIDpumpAPI/get : %s : %s %s : bytes decoding failed : %s" % (devicename, pdu, oid, e))
                     value = entry[1]
             else:
                 value = entry[1].decode('utf-8')
@@ -2187,7 +2380,8 @@ class OIDpumpAPI(Resource):
                                           tdiff.days * 24 * 3600) * 10**6) / 1000
         deviceinfo['query-duration'] = duration
 
-        logger.info('fn=OIDpumpAPI/get : %s : duration=%s' % (devicename, deviceinfo['query-duration']))
+        logger.info('fn=OIDpumpAPI/get : %s : duration=%s' %
+                    (devicename, deviceinfo['query-duration']))
         return deviceinfo
 
 
@@ -2294,14 +2488,16 @@ class QoSAPI(Resource):
     @auth.login_required
     def get(self, devicename):
         # -------------------------
-        logger.debug('fn=QoSAPI/get : src=%s, %s' % (request.remote_addr, devicename))
+        logger.debug('fn=QoSAPI/get : src=%s, %s' %
+                     (request.remote_addr, devicename))
         logaction(classname='QoSAPI', methodname='get', devicename=devicename,
                   src_ip=request.remote_addr, src_user=auth.username())
         tstart = datetime.now()
         deviceinfo = autovivification.AutoVivification()
         deviceinfo['name'] = devicename
 
-        logger.debug('fn=QoSAPI/get : %s : requesting a SNMP manager' % (devicename))
+        logger.debug(
+            'fn=QoSAPI/get : %s : requesting a SNMP manager' % (devicename))
         m, errors = snimpy.create(devicename=devicename)
 
         if m is None:
@@ -2324,7 +2520,6 @@ class QoSAPI(Resource):
         logger.info('fn=QoSAPI/get : %s : duration=%s' %
                     (devicename, deviceinfo['query-duration']))
         return deviceinfo
-
 
 
 # -----------------------------------------------------------------------------------
@@ -2370,8 +2565,10 @@ api = Api(app)
 # add TRACE log level
 logging.TRACE = 5
 logging.addLevelName(logging.TRACE, "TRACE")
-logging.Logger.trace = lambda inst, msg, *args, **kwargs: inst.log(logging.TRACE, msg, *args, **kwargs)
-logging.trace = lambda msg, *args, **kwargs: logging.log(logging.TRACE, msg, *args, **kwargs)
+logging.Logger.trace = lambda inst, msg, * \
+    args, **kwargs: inst.log(logging.TRACE, msg, *args, **kwargs)
+logging.trace = lambda msg, * \
+    args, **kwargs: logging.log(logging.TRACE, msg, *args, **kwargs)
 
 # the main logger
 log_file = app.config['LOGFILE']
@@ -2391,7 +2588,7 @@ logger.propagate = False
 # level from config.
 logger.setLevel(logging.INFO)
 if app.config['DEBUG']:
-     logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.DEBUG)
 if app.config['TRACE']:
     logger.setLevel(logging.TRACE)
 
@@ -2415,9 +2612,6 @@ actionformatter = logging.Formatter(FORMAT)
 actionhdlr.setFormatter(actionformatter)
 actionlogger.addHandler(actionhdlr)
 actionlogger.setLevel(logging.INFO)
-
-
-
 
 
 # -----------------------------------------------------------------------------------
@@ -2538,6 +2732,7 @@ def xdoc(name=None):
 
 # -----------------------------------------------------------------------------------
 
+
 # to get user, passwords and SNMP communites for network devices
 credmgr = credentials.Credentials()
 
@@ -2572,9 +2767,11 @@ qoscollector = qos.QOScollector(app)
 
 extauth = auth_external.AuthExternal()
 
+
 @auth.verify_password
 def verify_pw(username, password):
     return extauth.verify_credentials(username, password, request)
+
 
 @auth.error_handler
 def unauthorized():
@@ -2604,7 +2801,8 @@ def logaction(classname=None,
               src_ip=None,
               src_user=None):
 
-    actionlogger.info('%s/%s : dev=%s params=%s mode=%s ip=%s srvuser=%s' % (classname, methodname, devicename, params, mode, src_ip, src_user))
+    actionlogger.info('%s/%s : dev=%s params=%s mode=%s ip=%s srvuser=%s' %
+                      (classname, methodname, devicename, params, mode, src_ip, src_user))
 
 
 # -----------------------------------------------------------------------------------
