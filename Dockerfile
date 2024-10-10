@@ -10,7 +10,9 @@ RUN dnf install -y \
       libffi-devel \
       openssl-devel \
       wget \
-      zlib-devel
+      zlib-devel \ 
+      net-snmp-devel \ 
+      net-snmp-libs
 
 RUN wget https://www.python.org/ftp/python/3.11.10/Python-3.11.10.tgz \
     && tar xzf Python-3.11.10.tgz \
