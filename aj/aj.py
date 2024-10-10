@@ -55,10 +55,10 @@ script_path = os.path.split(full_path)[0]
 sys.path.insert(0, script_path + '/etc')
 
 # etc/credentials.py knows how to get the credentials for a device (SNMP, login, etc)
-#import credentials
+import credentials
 
 # etc/auth_external.py controls how Agent-Jones is accessed
-#import auth_external
+import auth_external
 
 
 import utils
